@@ -3,6 +3,7 @@ import json
 import time
 from datetime import datetime
 import base64
+import os
 
 class SalaryData:
     def __init__(self, name, amount, discount, bonus):
@@ -69,10 +70,7 @@ class Block:
         return {
             "index": self.index,
             "timestamp": self.timestamp,
-            "transactions": [
-                tx.to_dict() if hasattr(tx, "to_dict") else tx
-                for tx in self.transactions
-            ],
+            "transactions": self.transactions,  # Giữ nguyên format để lưu
             "previous_hash": self.previous_hash,
             "hash": self.hash,
             "nonce": self.nonce
@@ -80,10 +78,10 @@ class Block:
 
     @staticmethod
     def from_dict(data):
-        transactions = [Transaction.from_dict(tx) for tx in data['transactions']]
+        # Tạo block từ dict, không cần decode transactions ở đây
         block = Block(
             index=data['index'],
-            transactions=transactions,
+            transactions=data['transactions'],  # Giữ nguyên format
             timestamp=data['timestamp'],
             previous_hash=data['previous_hash'],
             nonce=data.get('nonce', 0)
@@ -93,18 +91,49 @@ class Block:
     
 class Blockchain:
     def __init__(self, difficulty=2):
-        self.difficulty = difficulty  # Đặt difficulty trước
+        self.difficulty = difficulty
         self.chain = []
         self.pending_transactions = []
         self.mining_reward = 10
+        self.blockchain_file = "blockchain.json"
         self.backup_file = "blockchain_backup.json"
-        self.create_genesis_block()
+        
+        # Thử tải blockchain từ file trước, nếu không có thì tạo genesis
+        if not self.load_existing_blockchain():
+            self.create_genesis_block()
+
+    def load_existing_blockchain(self):
+        """Tải blockchain từ file nếu tồn tại"""
+        try:
+            if os.path.exists(self.blockchain_file):
+                print(f"Loading existing blockchain from {self.blockchain_file}")
+                with open(self.blockchain_file, 'r') as f:
+                    data = json.load(f)
+                    if data:  # Nếu file không rỗng
+                        self.chain = [Block.from_dict(block_data) for block_data in data]
+                        print(f"Loaded {len(self.chain)} blocks from existing blockchain")
+                        
+                        # Validate blockchain sau khi load
+                        if self.validate_chain():
+                            print("Blockchain validation successful")
+                            return True
+                        else:
+                            print("Blockchain validation failed, creating new genesis block")
+                            self.chain = []
+                            return False
+            return False
+        except Exception as e:
+            print(f"Error loading blockchain: {e}")
+            self.chain = []
+            return False
 
     def create_genesis_block(self):
+        """Tạo genesis block chỉ khi chưa có blockchain"""
+        print("Creating new genesis block")
         genesis = Block(0, [], time.time(), "0")
         genesis.mine_block(self.difficulty)
         self.chain.append(genesis)
-        self.save_to_file("blockchain.json")
+        self.save_to_file()
         self.backup_chain()
         return genesis
 
@@ -112,6 +141,7 @@ class Blockchain:
         return self.chain[-1]
 
     def add_block(self, transactions):
+        """Thêm block mới và lưu ngay lập tức"""
         new_block = Block(
             len(self.chain), 
             transactions, 
@@ -123,41 +153,72 @@ class Blockchain:
         if self.validate_new_block(new_block):
             self.chain.append(new_block)
             self.pending_transactions = []
-            self.save_to_file("blockchain.json")
+            
+            # Lưu ngay sau khi thêm block
+            self.save_to_file()
+            self.backup_chain()
+            
+            print(f"Block #{new_block.index} added and saved to blockchain")
             return new_block
         else:
             raise Exception("Block không hợp lệ!")
 
-    def save_to_file(self, filename):
-        data = [block.to_dict() for block in self.chain]
-        with open(filename, 'w') as f:
-            json.dump(data, f, indent=2)
-
-    def load_from_file(self, filename):
-        with open(filename, 'r') as f:
-            data = json.load(f)
-            self.chain = [Block.from_dict(b) for b in data]
+    def save_to_file(self):
+        """Lưu blockchain vào file JSON"""
+        try:
+            data = [block.to_dict() for block in self.chain]
+            
+            # Lưu vào file tạm trước
+            temp_file = self.blockchain_file + ".tmp"
+            with open(temp_file, 'w') as f:
+                json.dump(data, f, indent=2)
+            
+            # Rename file tạm thành file chính (atomic operation)
+            os.replace(temp_file, self.blockchain_file)
+            print(f"Blockchain saved to {self.blockchain_file}")
+            
+        except Exception as e:
+            print(f"Error saving blockchain: {e}")
 
     def backup_chain(self):
-        data = [block.to_dict() for block in self.chain]
-        with open(self.backup_file, 'w') as f:
-            json.dump(data, f, indent=2)
-
-    def restore_chain(self):
+        """Tạo backup của blockchain"""
         try:
-            with open(self.backup_file, 'r') as f:
-                backup_data = json.load(f)
-        except FileNotFoundError:
-            return []
+            data = [block.to_dict() for block in self.chain]
+            with open(self.backup_file, 'w') as f:
+                json.dump(data, f, indent=2)
+            print(f"Blockchain backup created: {self.backup_file}")
+        except Exception as e:
+            print(f"Error creating backup: {e}")
 
-        restored_blocks = []
-        for i, (current_block, original_block) in enumerate(zip(self.chain, backup_data)):
-            current_data = current_block.to_dict()
-            if current_data != original_block:
-                restored = Block.from_dict(original_block)
-                self.chain[i] = restored
-                restored_blocks.append(i)
-        return restored_blocks
+    def restore_from_backup(self):
+        """Khôi phục blockchain từ backup"""
+        try:
+            if os.path.exists(self.backup_file):
+                with open(self.backup_file, 'r') as f:
+                    backup_data = json.load(f)
+                
+                # Validate backup data
+                temp_chain = [Block.from_dict(block_data) for block_data in backup_data]
+                
+                # Tạo blockchain tạm để validate
+                temp_blockchain = Blockchain.__new__(Blockchain)
+                temp_blockchain.chain = temp_chain
+                temp_blockchain.difficulty = self.difficulty
+                
+                if temp_blockchain.validate_chain():
+                    self.chain = temp_chain
+                    self.save_to_file()
+                    print("Blockchain restored from backup successfully")
+                    return True
+                else:
+                    print("Backup blockchain is invalid")
+                    return False
+            else:
+                print("No backup file found")
+                return False
+        except Exception as e:
+            print(f"Error restoring from backup: {e}")
+            return False
 
     def validate_new_block(self, new_block):
         latest_block = self.get_latest_block()
@@ -174,21 +235,28 @@ class Blockchain:
         return True
 
     def validate_chain(self):
-        for i in range(1, len(self.chain)):
-            current_block = self.chain[i]
-            previous_block = self.chain[i-1]
-            
-            if not current_block.validate_block():
-                return False
+        """Validate toàn bộ blockchain"""
+        try:
+            for i in range(1, len(self.chain)):
+                current_block = self.chain[i]
+                previous_block = self.chain[i-1]
                 
-            if current_block.previous_hash != previous_block.hash:
-                return False
-                
-        return True
+                if not current_block.validate_block():
+                    print(f"Block {i} has invalid hash")
+                    return False
+                    
+                if current_block.previous_hash != previous_block.hash:
+                    print(f"Block {i} has invalid previous hash")
+                    return False
+                    
+            return True
+        except Exception as e:
+            print(f"Error validating chain: {e}")
+            return False
 
     def add_transaction(self, transaction):
+        """Thêm transaction vào pending list"""
         self.pending_transactions.append(transaction)
-        self.save_to_file("blockchain.json")
 
     def get_blockchain_stats(self):
         total_blocks = len(self.chain)
@@ -201,7 +269,7 @@ class Blockchain:
             'total_size_bytes': total_size,
             'chain_valid': self.validate_chain(),
             'difficulty': self.difficulty,
-            'latest_block_hash': self.get_latest_block().hash
+            'latest_block_hash': self.get_latest_block().hash if self.chain else "No blocks"
         }
 
     def get_blocks_with_details(self):
@@ -285,29 +353,97 @@ class Blockchain:
                     
         return monthly_stats
 
+# Thêm vào class Blockchain trong blockchain.py
+
     def _decode_transaction(self, tx_data, crypto=None):
-        """Helper function để decode transaction"""
+        """Helper function để decode transaction với error handling tốt hơn"""
         try:
             if isinstance(tx_data, str):
-                # Thử decode base64 + decrypt
-                if crypto:
+                # Import crypto utils nếu chưa có
+                if crypto is None:
                     try:
-                        encrypted_bytes = base64.b64decode(tx_data)
-                        decrypted_json = crypto.aes_decrypt(encrypted_bytes)
-                        return json.loads(decrypted_json)
+                        from backend.crypto_utils import CryptoUtils
+                        crypto = CryptoUtils()
                     except:
-                        pass
+                        return None
                 
-                # Thử parse JSON trực tiếp
+                # Thử decode base64 + decrypt
                 try:
-                    return json.loads(tx_data)
-                except:
-                    return None
+                    encrypted_bytes = base64.b64decode(tx_data)
+                    decrypted_json = crypto.aes_decrypt(encrypted_bytes)
+                    return json.loads(decrypted_json)
+                except Exception as decode_error:
+                    print(f"Decode error (trying old method): {decode_error}")
                     
+                    # Thử phương pháp cũ cho tương thích ngược
+                    try:
+                        from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+                        from cryptography.hazmat.backends import default_backend
+                        
+                        # Sử dụng key cũ với padding space
+                        cipher = Cipher(algorithms.AES(crypto.key), modes.CBC(crypto.iv), backend=default_backend())
+                        decryptor = cipher.decryptor()
+                        decrypted_padded = decryptor.update(encrypted_bytes) + decryptor.finalize()
+                        decrypted_old = decrypted_padded.decode('utf-8').rstrip()
+                        return json.loads(decrypted_old)
+                    except Exception as old_error:
+                        print(f"Old method also failed: {old_error}")
+                        
+                        # Thử parse JSON trực tiếp
+                        try:
+                            return json.loads(tx_data)
+                        except:
+                            return None
+                            
             elif isinstance(tx_data, dict):
                 return tx_data
             else:
                 return None
                 
-        except:
+        except Exception as e:
+            print(f"Transaction decode error: {e}")
             return None
+
+    def validate_and_fix_blockchain(self):
+        """Kiểm tra và sửa các transaction bị lỗi trong blockchain"""
+        print("Validating and fixing blockchain...")
+        
+        try:
+            from backend.crypto_utils import CryptoUtils
+            crypto = CryptoUtils()
+        except:
+            print("Cannot load crypto utils")
+            return False
+        
+        fixed_count = 0
+        error_count = 0
+        
+        for block_idx, block in enumerate(self.chain):
+            for tx_idx, tx_data in enumerate(block.transactions):
+                try:
+                    # Thử decode transaction
+                    decoded = self._decode_transaction(tx_data, crypto)
+                    if decoded is None:
+                        error_count += 1
+                        print(f"Cannot decode transaction in block {block_idx}, tx {tx_idx}")
+                    else:
+                        fixed_count += 1
+                except Exception as e:
+                    error_count += 1
+                    print(f"Error in block {block_idx}, tx {tx_idx}: {e}")
+        
+        print(f"Validation complete: {fixed_count} valid, {error_count} errors")
+        return error_count == 0
+
+
+    def get_blockchain_info(self):
+        """Lấy thông tin tổng quan về blockchain"""
+        return {
+            'total_blocks': len(self.chain),
+            'blockchain_file': self.blockchain_file,
+            'backup_file': self.backup_file,
+            'file_exists': os.path.exists(self.blockchain_file),
+            'backup_exists': os.path.exists(self.backup_file),
+            'chain_valid': self.validate_chain(),
+            'last_block_time': datetime.fromtimestamp(self.get_latest_block().timestamp).strftime('%Y-%m-%d %H:%M:%S') if self.chain else None
+        }

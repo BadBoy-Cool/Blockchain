@@ -3,6 +3,8 @@ import json
 import sqlite3
 import base64
 from datetime import datetime
+import atexit
+from contextlib import contextmanager
 import io
 import os
 
@@ -16,6 +18,9 @@ app.secret_key = 'your-secret-key-here-change-in-production'
 # Khởi tạo CSDL
 init_db()
 
+# Biến global để đảm bảo chỉ có một instance PayrollSystem
+_payroll_system = None
+_system_lock = False
 # Tạo một instance duy nhất của PayrollSystem để dùng chung
 payroll_system = PayrollSystem()
 
@@ -93,6 +98,52 @@ def admin_required(f):
     decorated_function.__name__ = f.__name__
     return decorated_function
 
+def get_payroll_system():
+    """Singleton pattern cho PayrollSystem"""
+    global _payroll_system, _system_lock
+    
+    if _payroll_system is None and not _system_lock:
+        _system_lock = True
+        try:
+            print("Initializing PayrollSystem...")
+            _payroll_system = PayrollSystem()
+            
+            # Đảm bảo lưu blockchain khi thoát ứng dụng
+            atexit.register(save_blockchain_on_exit)
+            
+            print("PayrollSystem initialized successfully")
+        except Exception as e:
+            print(f"Error initializing PayrollSystem: {e}")
+            _system_lock = False
+            raise
+        finally:
+            _system_lock = False
+    
+    return _payroll_system
+
+def save_blockchain_on_exit():
+    """Lưu blockchain khi thoát ứng dụng"""
+    global _payroll_system
+    if _payroll_system:
+        try:
+            _payroll_system.blockchain.save_to_file()
+            _payroll_system.blockchain.backup_chain()
+            print("Blockchain saved on exit")
+        except Exception as e:
+            print(f"Error saving blockchain on exit: {e}")
+
+@contextmanager
+def payroll_transaction():
+    """Context manager để đảm bảo transaction safety"""
+    payroll = get_payroll_system()
+    try:
+        yield payroll
+        # Lưu sau mỗi transaction thành công
+        payroll.blockchain.save_to_file()
+    except Exception as e:
+        print(f"Transaction error: {e}")
+        raise
+    
 # Routes
 @app.route('/')
 @login_required
@@ -168,6 +219,7 @@ def add_data():
     conn.close()
     return render_template('add_data.html', employees=employees)
 
+# Route cải thiện cho process_payroll
 @app.route('/process_payroll', methods=['GET', 'POST'])
 @login_required
 def process_payroll():
@@ -175,17 +227,35 @@ def process_payroll():
         try:
             employee_id = int(request.form['employee_id'])
             month = request.form['month']
-            transaction = payroll_system.process_payroll(employee_id, month)
-            return app.response_class(
-                response=json.dumps({'status': 'success', 'transaction': transaction}),
-                status=200,
-                mimetype='application/json'
-            )
+            
+            # Sử dụng context manager
+            with payroll_transaction() as payroll:
+                transaction = payroll.process_payroll(employee_id, month)
+                
+                return app.response_class(
+                    response=json.dumps({
+                        'status': 'success', 
+                        'transaction': transaction,
+                        'blockchain_info': {
+                            'total_blocks': len(payroll.blockchain.chain),
+                            'last_block_hash': payroll.blockchain.get_latest_block().hash
+                        }
+                    }),
+                    status=200,
+                    mimetype='application/json'
+                )
 
         except Exception as e:
             print("Error in process_payroll:", e)
-            return jsonify({'status': 'error', 'message': str(e)}), 500
+            import traceback
+            traceback.print_exc()
+            return jsonify({
+                'status': 'error', 
+                'message': str(e),
+                'details': 'Check server logs for more information'
+            }), 500
     
+    # GET request - hiển thị form
     conn = sqlite3.connect('payroll.db')
     c = conn.cursor()   
     c.execute("SELECT id, name FROM employees")
@@ -193,57 +263,210 @@ def process_payroll():
     conn.close()
     return render_template('process_payroll.html', employees=employees)
 
+# Route cải thiện cho view_transactions
 @app.route('/view_transactions')
 @login_required
 def view_transactions():
-    transactions = []
     try:
-        for block in payroll_system.blockchain.chain:
-            for tx_b64 in block.transactions:
-                try:
-                    encrypted_bytes = base64.b64decode(tx_b64)
-                    decrypted_json = payroll_system.crypto.aes_decrypt(encrypted_bytes)
-                    tx_dict = json.loads(decrypted_json)
-                    transactions.append(tx_dict)
-                except Exception as e:
-                    transactions.append({
-                        'error': f'Không thể giải mã: {str(e)}', 
-                        'raw_data': tx_b64[:50] + '...' if len(tx_b64) > 50 else tx_b64
-                    })
+        payroll = get_payroll_system()
+        transactions, errors = payroll.get_all_transactions()
+        
+        # Format transactions để hiển thị
+        formatted_transactions = []
+        for tx in transactions:
+            try:
+                formatted_tx = {
+                    'employee_id': tx.get('employee_id', 'N/A'),
+                    'employee_name': tx.get('employee_name', 'N/A'),
+                    'month': tx.get('month', 'N/A'),
+                    'base_salary': tx.get('base_salary', 0),
+                    'overtime_salary': tx.get('overtime_salary', 0),
+                    'kpi_bonus': tx.get('kpi_bonus', 0),
+                    'total_salary': tx.get('total_salary', 0),
+                    'timestamp': tx.get('timestamp', 0),
+                    'processed_date': tx.get('processed_date', 'N/A'),
+                    'signature': tx.get('signature', '')[:50] + '...' if tx.get('signature') else 'N/A',
+                    'block_index': tx.get('block_index', 'N/A'),
+                    'block_hash': tx.get('block_hash', '')[:20] + '...' if tx.get('block_hash') else 'N/A'
+                }
+                formatted_transactions.append(formatted_tx)
+            except Exception as e:
+                print(f"Error formatting transaction: {e}")
+                formatted_transactions.append({
+                    'error': f'Lỗi format transaction: {str(e)}',
+                    'raw_data': str(tx)[:100] + '...' if len(str(tx)) > 100 else str(tx)
+                })
+        
+        # Thêm thông tin lỗi decode
+        for error in errors:
+            formatted_transactions.append({
+                'error': f"Block {error['block_index']}: {error['error']}",
+                'raw_data': error['raw_data']
+            })
+
+        return render_template('view_transactions.html', transactions=formatted_transactions)
+        
     except Exception as e:
         print(f"Error in view_transactions: {e}")
-        transactions = [{'error': f'Lỗi hệ thống: {str(e)}', 'raw_data': ''}]
+        import traceback
+        traceback.print_exc()
+        return render_template('view_transactions.html', transactions=[
+            {'error': f'Lỗi hệ thống: {str(e)}', 'raw_data': ''}
+        ])
 
-    return render_template('view_transactions.html', transactions=transactions)
-
+# Route cải thiện cho chitietblockchain
 @app.route('/chitietblockchain')
 @login_required
 def chitietblockchain():
-    blockchain = payroll_system.blockchain
-    blocks = blockchain.get_blocks_with_details()
-    blockchain_stats = blockchain.get_blockchain_stats()
-    
-    # Tính tổng lương và giải mã transactions
-    total_salary = 0
-    for block in blocks:
-        decoded_transactions = []
-        for tx_b64 in block['transactions']:
-            try:
-                encrypted_bytes = base64.b64decode(tx_b64)
-                decrypted_json = payroll_system.crypto.aes_decrypt(encrypted_bytes)
-                tx_dict = json.loads(decrypted_json)
-                decoded_transactions.append(tx_dict)
-                total_salary += tx_dict.get('total_salary', 0)
-            except Exception as e:
-                decoded_transactions.append({'error': f'Không thể giải mã: {str(e)}'})
+    try:
+        payroll = get_payroll_system()
+        blocks = payroll.blockchain.get_blocks_with_details()
+        blockchain_stats = payroll.blockchain.get_blockchain_stats()
         
-        block['transactions'] = decoded_transactions
-    
-    blockchain_stats['total_salary'] = total_salary
-    blockchain_stats['chain_integrity'] = "✅ Hợp lệ" if blockchain_stats['chain_valid'] else "❌ Không hợp lệ"
-    
-    return render_template('chitietblockchain.html', blocks=blocks, blockchain_stats=blockchain_stats)
+        # Decode transactions cho từng block
+        total_salary = 0
+        for block in blocks:
+            decoded_transactions = []
+            for tx_b64 in block['transactions']:
+                try:
+                    if isinstance(tx_b64, str):
+                        encrypted_bytes = base64.b64decode(tx_b64)
+                        decrypted_json = payroll.crypto.aes_decrypt(encrypted_bytes)
+                        tx_dict = json.loads(decrypted_json)
+                    else:
+                        tx_dict = tx_b64
+                    
+                    decoded_transactions.append(tx_dict)
+                    total_salary += tx_dict.get('total_salary', 0)
+                    
+                except Exception as e:
+                    decoded_transactions.append({
+                        'error': f'Không thể giải mã: {str(e)}',
+                        'raw_preview': str(tx_b64)[:50] + '...' if len(str(tx_b64)) > 50 else str(tx_b64)
+                    })
+            
+            block['transactions'] = decoded_transactions
+        
+        # Cập nhật stats
+        blockchain_stats['total_salary'] = total_salary
+        blockchain_stats['chain_integrity'] = "✅ Hợp lệ" if blockchain_stats['chain_valid'] else "❌ Không hợp lệ"
+        
+        return render_template('chitietblockchain.html', 
+                             blocks=blocks, 
+                             blockchain_stats=blockchain_stats)
+                             
+    except Exception as e:
+        print(f"Error in chitietblockchain: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        # Fallback với dữ liệu mặc định
+        return render_template('chitietblockchain.html', 
+                             blocks=[], 
+                             blockchain_stats={
+                                 'total_blocks': 0,
+                                 'total_transactions': 0,
+                                 'total_salary': 0,
+                                 'chain_integrity': "❌ Lỗi"
+                             })
 
+# Route mới để kiểm tra trạng thái blockchain
+@app.route('/blockchain_status')
+@login_required
+def blockchain_status():
+    """API endpoint để kiểm tra trạng thái blockchain"""
+    try:
+        payroll = get_payroll_system()
+        stats = payroll.get_system_stats()
+        
+        return jsonify({
+            'status': 'success',
+            'blockchain_info': stats['blockchain_info'],
+            'blockchain_stats': stats['blockchain'],
+            'total_transactions': stats['total_transactions'],
+            'total_salary': stats['total_salary'],
+            'decoding_errors': stats['decoding_errors']
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+# Route backup/restore blockchain
+@app.route('/backup_blockchain', methods=['POST'])
+@admin_required
+def backup_blockchain():
+    """Tạo backup blockchain thủ công"""
+    try:
+        payroll = get_payroll_system()
+        success = payroll.backup_blockchain()
+        
+        if success:
+            return jsonify({
+                'status': 'success',
+                'message': 'Backup được tạo thành công'
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': 'Không thể tạo backup'
+            }), 500
+            
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/restore_blockchain', methods=['POST'])
+@admin_required
+def restore_blockchain():
+    """Khôi phục blockchain từ backup"""
+    try:
+        payroll = get_payroll_system()
+        success = payroll.restore_blockchain()
+        
+        if success:
+            return jsonify({
+                'status': 'success',
+                'message': 'Blockchain được khôi phục thành công'
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': 'Không thể khôi phục từ backup'
+            }), 500
+            
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+# Force save blockchain (cho admin)
+@app.route('/force_save_blockchain', methods=['POST'])
+@admin_required
+def force_save_blockchain():
+    """Buộc lưu blockchain (dùng khi debug)"""
+    try:
+        payroll = get_payroll_system()
+        payroll.blockchain.save_to_file()
+        payroll.blockchain.backup_chain()
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Blockchain đã được lưu',
+            'blocks': len(payroll.blockchain.chain)
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+    
 @app.route('/user_management')
 @admin_required
 def user_management():

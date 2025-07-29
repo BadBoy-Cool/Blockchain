@@ -5,29 +5,224 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Lịch Sử Giao Dịch</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+    <style>
+        .transaction-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .transaction-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.2);
+        }
+        .error-card {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        }
+        .status-indicator {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .hash-display {
+            font-family: 'Courier New', monospace;
+            background: rgba(0,0,0,0.1);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            word-break: break-all;
+        }
+    </style>
 </head>
-<body class="bg-gray-100 font-sans">
-    <div class="container mx-auto p-4">
-        <h1 class="text-2xl font-bold mb-4">Lịch Sử Giao Dịch</h1>
-        <div class="bg-white p-6 rounded shadow-md">
-            {% for tx in transactions %}
-                <div class="border-b py-2">
+<body class="bg-gray-100 font-sans min-h-screen">
+    <div class="container mx-auto p-6">
+        <!-- Header -->
+        <div class="mb-8 text-center">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">💰 Lịch Sử Giao Dịch</h1>
+            <p class="text-gray-600">Tất cả giao dịch lương được lưu trữ trong blockchain</p>
+        </div>
+
+        <!-- Blockchain Status Card -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold text-gray-800">📊 Trạng Thái Blockchain</h2>
+                <div class="status-indicator bg-green-500 text-white px-3 py-1 rounded-full text-sm">
+                    🔗 Hoạt động
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4" id="blockchain-stats">
+                <div class="text-center p-4 bg-blue-50 rounded-lg">
+                    <div class="text-2xl font-bold text-blue-600" id="total-blocks">-</div>
+                    <div class="text-sm text-gray-600">Tổng Blocks</div>
+                </div>
+                <div class="text-center p-4 bg-green-50 rounded-lg">
+                    <div class="text-2xl font-bold text-green-600" id="total-transactions">{{ transactions|length }}</div>
+                    <div class="text-sm text-gray-600">Tổng Giao Dịch</div>
+                </div>
+                <div class="text-center p-4 bg-purple-50 rounded-lg">
+                    <div class="text-2xl font-bold text-purple-600" id="total-salary">$0.00</div>
+                    <div class="text-sm text-gray-600">Tổng Lương</div>
+                </div>
+                <div class="text-center p-4 bg-orange-50 rounded-lg">
+                    <div class="text-2xl font-bold text-orange-600" id="error-count">0</div>
+                    <div class="text-sm text-gray-600">Lỗi Decode</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transactions List -->
+        <div class="space-y-4">
+            {% if transactions %}
+                {% for tx in transactions %}
+                <div class="transaction-card {% if tx.error %}error-card{% endif %} text-white p-6">
                     {% if tx.error %}
-                        <p class="text-red-600 font-bold">Lỗi giải mã: {{ tx.error }}</p>
-                        <p><strong>Dữ liệu thô (base64):</strong> {{ tx.raw_data }}</p>
+                        <!-- Error Card -->
+                        <div class="flex items-start space-x-4">
+                            <div class="text-4xl">❌</div>
+                            <div class="flex-1">
+                                <h3 class="text-lg font-semibold mb-2">Lỗi Giải Mã Giao Dịch</h3>
+                                <p class="text-red-100 mb-2">{{ tx.error }}</p>
+                                {% if tx.raw_data %}
+                                <div class="mt-2">
+                                    <div class="text-sm opacity-80 mb-1">Dữ liệu thô:</div>
+                                    <div class="hash-display bg-black bg-opacity-20">{{ tx.raw_data }}</div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
                     {% else %}
-                        <p><strong>ID Nhân Viên:</strong> {{ tx.employee_id }}</p>
-                        <p><strong>Tháng:</strong> {{ tx.month }}</p>
-                        <p><strong>Lương Cơ Bản:</strong> {{ tx.base_salary }}</p>
-                        <p><strong>Lương Tăng Ca:</strong> {{ tx.overtime_salary }}</p>
-                        <p><strong>Thưởng KPI:</strong> {{ tx.kpi_bonus }}</p>
-                        <p><strong>Tổng Lương:</strong> {{ tx.total_salary }}</p>
-                        <p><strong>Thời Gian:</strong> {{ tx.timestamp }}</p>
-                        <p><strong>Chữ Ký:</strong> {{ tx.signature }}</p>
+                        <!-- Normal Transaction Card -->
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-xl font-semibold">
+                                    👤 {{ tx.employee_name if tx.employee_name != 'N/A' else 'Nhân viên #' + tx.employee_id|string }}
+                                </h3>
+                                <p class="text-sm opacity-80">📅 Tháng: {{ tx.month }} | 🏢 ID: {{ tx.employee_id }}</p>
+                                {% if tx.processed_date != 'N/A' %}
+                                <p class="text-xs opacity-70">⏰ Xử lý: {{ tx.processed_date }}</p>
+                                {% endif %}
+                            </div>
+                            <div class="text-right">
+                                <div class="text-2xl font-bold">${{ "%.2f"|format(tx.total_salary) }}</div>
+                                <div class="text-sm opacity-80">Tổng lương</div>
+                            </div>
+                        </div>
+
+                        <!-- Salary Breakdown -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <div class="bg-white bg-opacity-10 rounded-lg p-3">
+                                <div class="text-sm opacity-80">💵 Lương cơ bản</div>
+                                <div class="text-lg font-semibold">${{ "%.2f"|format(tx.base_salary) }}</div>
+                            </div>
+                            <div class="bg-white bg-opacity-10 rounded-lg p-3">
+                                <div class="text-sm opacity-80">⏰ Lương tăng ca</div>
+                                <div class="text-lg font-semibold">${{ "%.2f"|format(tx.overtime_salary) }}</div>
+                            </div>
+                            <div class="bg-white bg-opacity-10 rounded-lg p-3">
+                                <div class="text-sm opacity-80">🎯 Thưởng KPI</div>
+                                <div class="text-lg font-semibold">${{ "%.2f"|format(tx.kpi_bonus) }}</div>
+                            </div>
+                        </div>
+
+                        <!-- Blockchain Info -->
+                        <div class="border-t border-white border-opacity-20 pt-4 space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span class="opacity-80">📦 Block:</span>
+                                <span class="font-mono">{{ tx.block_index if tx.block_index != 'N/A' else 'N/A' }}</span>
+                            </div>
+                            {% if tx.block_hash != 'N/A' %}
+                            <div class="flex justify-between text-sm">
+                                <span class="opacity-80">🔗 Block Hash:</span>
+                                <span class="hash-display">{{ tx.block_hash }}</span>
+                            </div>
+                            {% endif %}
+                            {% if tx.signature != 'N/A' %}
+                            <div class="flex justify-between text-sm">
+                                <span class="opacity-80">🔐 Chữ ký:</span>
+                                <span class="hash-display">{{ tx.signature }}</span>
+                            </div>
+                            {% endif %}
+                            {% if tx.timestamp and tx.timestamp != 0 %}
+                            <div class="flex justify-between text-sm">
+                                <span class="opacity-80">⏱️ Timestamp:</span>
+                                <span class="font-mono">{{ tx.timestamp }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
                     {% endif %}
                 </div>
-            {% endfor %}
+                {% endfor %}
+            {% else %}
+                <!-- Empty State -->
+                <div class="text-center py-12">
+                    <div class="text-6xl mb-4">📭</div>
+                    <h3 class="text-xl font-semibold text-gray-600 mb-2">Chưa có giao dịch nào</h3>
+                    <p class="text-gray-500 mb-6">Hãy xử lý bảng lương để tạo giao dịch đầu tiên</p>
+                    <a href="/process_payroll" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg transition-colors">
+                        💼 Xử lý bảng lương
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Navigation -->
+        <div class="text-center mt-8 space-x-4">
+            <a href="/" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition-colors">
+                🏠 Dashboard
+            </a>
+            <a href="/chitietblockchain" class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-lg transition-colors">
+                🔗 Chi tiết Blockchain
+            </a>
+            <a href="/process_payroll" class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg transition-colors">
+                💼 Xử lý lương mới
+            </a>
         </div>
     </div>
+
+    <script>
+        // Load blockchain status
+        async function loadBlockchainStatus() {
+            try {
+                const response = await fetch('/blockchain_status');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    document.getElementById('total-blocks').textContent = data.blockchain_stats.total_blocks;
+                    document.getElementById('total-salary').textContent = `$${data.total_salary.toFixed(2)}`;
+                    document.getElementById('error-count').textContent = data.decoding_errors;
+                }
+            } catch (error) {
+                console.error('Error loading blockchain status:', error);
+            }
+        }
+
+        // Auto refresh every 30 seconds
+        setInterval(loadBlockchainStatus, 30000);
+
+        // Load on page load
+        window.addEventListener('load', loadBlockchainStatus);
+
+        // Calculate total salary from visible transactions
+        function calculateTotalSalary() {
+            const transactions = document.querySelectorAll('.transaction-card:not(.error-card)');
+            let total = 0;
+            
+            transactions.forEach(card => {
+                const salaryText = card.querySelector('.text-2xl.font-bold').textContent;
+                const salary = parseFloat(salaryText.replace('$', '').replace(',', ''));
+                if (!isNaN(salary)) {
+                    total += salary;
+                }
+            });
+            
+            document.getElementById('total-salary').textContent = `$${total.toFixed(2)}`;
+        }
+
+        // Calculate on load
+        window.addEventListener('load', calculateTotalSalary);
+    </script>
 </body>
 </html>
