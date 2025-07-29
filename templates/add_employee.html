@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thêm Nhân Viên</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto p-4">
+        <h1 class="text-2xl font-bold mb-4">Thêm Nhân Viên</h1>
+        <form id="employeeForm" class="bg-white p-6 rounded shadow-md">
+            <div class="mb-4">
+                <label class="block text-gray-700">Tên Nhân Viên</label>
+                <input type="text" name="name" class="w-full p-2 border rounded" required>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700">Lương Thỏa Thuận (USD)</label>
+                <input type="number" name="salary" class="w-full p-2 border rounded" required>
+            </div>
+            <button type="submit" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Thêm</button>
+        </form>
+        <div id="result" class="mt-4"></div>
+    </div>
+    <script>
+        document.getElementById('employeeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const response = await fetch('/add_employee', { method: 'POST', body: formData });
+            const result = await response.json();
+            document.getElementById('result').innerText = `Thêm nhân viên thành công! ID: ${result.employee_id}`;
+        });
+    </script>
+</body>
+</html>

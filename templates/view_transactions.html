@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lịch Sử Giao Dịch</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto p-4">
+        <h1 class="text-2xl font-bold mb-4">Lịch Sử Giao Dịch</h1>
+        <div class="bg-white p-6 rounded shadow-md">
+            {% for tx in transactions %}
+                <div class="border-b py-2">
+                    {% if tx.error %}
+                        <p class="text-red-600 font-bold">Lỗi giải mã: {{ tx.error }}</p>
+                        <p><strong>Dữ liệu thô (base64):</strong> {{ tx.raw_data }}</p>
+                    {% else %}
+                        <p><strong>ID Nhân Viên:</strong> {{ tx.employee_id }}</p>
+                        <p><strong>Tháng:</strong> {{ tx.month }}</p>
+                        <p><strong>Lương Cơ Bản:</strong> {{ tx.base_salary }}</p>
+                        <p><strong>Lương Tăng Ca:</strong> {{ tx.overtime_salary }}</p>
+                        <p><strong>Thưởng KPI:</strong> {{ tx.kpi_bonus }}</p>
+                        <p><strong>Tổng Lương:</strong> {{ tx.total_salary }}</p>
+                        <p><strong>Thời Gian:</strong> {{ tx.timestamp }}</p>
+                        <p><strong>Chữ Ký:</strong> {{ tx.signature }}</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

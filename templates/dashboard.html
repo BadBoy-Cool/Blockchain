@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quản lý lương</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script>
+        async function processPayroll(event) {
+            event.preventDefault();
+            const employeeId = document.querySelector('input[name="employee_id"]').value;
+            const month = document.querySelector('input[name="month"]').value;
+            const response = await fetch('/process_payroll', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `employee_id=${employeeId}&month=${month}`
+            });
+            const result = await response.json();
+            document.getElementById('result').innerText = JSON.stringify(result, null, 2);
+        }
+    </script>
+</head>
+<body>
+    <h1>Dashboard Quản lý Lương</h1>
+    <h2>Danh sách nhân viên</h2>
+    <ul>
+    {% for emp in employees %}
+        <li>ID: {{ emp[0] }} - Tên: {{ emp[1] }} - Lương thỏa thuận: {{ emp[2] }} USD</li>
+    {% endfor %}
+    </ul>
+    <h2>Chạy bảng lương</h2>
+    <form onsubmit="processPayroll(event)">
+        <label>ID Nhân viên: <input type="number" name="employee_id" required></label><br>
+        <label>Tháng (YYYY-MM): <input type="text" name="month" placeholder="2025-07" required></label><br>
+        <button type="submit">Tính lương</button>
+    </form>
+    <pre id="result"></pre>
+</body>
+</html>

@@ -1,0 +1,637 @@
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash, send_file
+import json
+import sqlite3
+import base64
+from datetime import datetime
+import io
+import os
+
+# Import backend modules
+from backend.database import init_db
+from backend.payroll_system import PayrollSystem
+
+app = Flask(__name__)
+app.secret_key = 'your-secret-key-here-change-in-production'
+
+# Khởi tạo CSDL
+init_db()
+
+# Tạo một instance duy nhất của PayrollSystem để dùng chung
+payroll_system = PayrollSystem()
+
+# Tạo class AuthSystem đơn giản
+class AuthSystem:
+    def __init__(self):
+        self.init_auth_db()
+    
+    def init_auth_db(self):
+        conn = sqlite3.connect('payroll.db')
+        c = conn.cursor()
+        c.execute('''CREATE TABLE IF NOT EXISTS users
+                     (id INTEGER PRIMARY KEY,
+                      username TEXT UNIQUE,
+                      password TEXT,
+                      role TEXT DEFAULT 'user',
+                      last_login TIMESTAMP,
+                      is_active BOOLEAN DEFAULT 1)''')
+        
+        # Tạo tài khoản admin mặc định
+        c.execute("INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)",
+                  ('admin', 'admin123', 'admin'))
+        conn.commit()
+        conn.close()
+    
+    def verify_user(self, username, password):
+        conn = sqlite3.connect('payroll.db')
+        c = conn.cursor()
+        c.execute("SELECT id, username, role FROM users WHERE username = ? AND password = ? AND is_active = 1",
+                  (username, password))
+        user = c.fetchone()
+        conn.close()
+        
+        if user:
+            return {'id': user[0], 'username': user[1], 'role': user[2]}
+        return None
+    
+    def get_all_users(self):
+        conn = sqlite3.connect('payroll.db')
+        c = conn.cursor()
+        c.execute("SELECT id, username, role, password, last_login, is_active FROM users")
+        users = c.fetchall()
+        conn.close()
+        return users
+
+# Tạo class ReportGenerator đơn giản
+class ReportGenerator:
+    def generate_salary_report_pdf(self):
+        # Tạo PDF đơn giản (mock)
+        content = "Salary Report - Generated on " + datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        buffer = io.BytesIO()
+        buffer.write(content.encode())
+        buffer.seek(0)
+        return buffer
+
+# Khởi tạo các instance
+auth_system = AuthSystem()
+report_gen = ReportGenerator()
+
+# Decorator functions
+def login_required(f):
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    decorated_function.__name__ = f.__name__
+    return decorated_function
+
+def admin_required(f):
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session or session.get('role') != 'admin':
+            flash('Bạn không có quyền truy cập trang này', 'error')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    decorated_function.__name__ = f.__name__
+    return decorated_function
+
+# Routes
+@app.route('/')
+@login_required
+def index():
+    return render_template('index.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        
+        user = auth_system.verify_user(username, password)
+        if user:
+            session['user_id'] = user['id']
+            session['username'] = user['username']
+            session['role'] = user['role']
+            flash(f'Chào mừng {username}!', 'success')
+            return redirect(url_for('index'))
+        else:
+            flash('Sai tên đăng nhập hoặc mật khẩu', 'error')
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash('Đã đăng xuất thành công', 'success')
+    return redirect(url_for('login'))
+
+@app.route('/add_employee', methods=['GET', 'POST'])
+@login_required
+def add_employee():
+    if request.method == 'POST':
+        name = request.form['name']
+        agreed_salary = float(request.form['salary'])
+        conn = sqlite3.connect('payroll.db')
+        c = conn.cursor()
+        from backend.crypto_utils import CryptoUtils
+        crypto = CryptoUtils()
+        public_key = crypto.get_public_key()
+        c.execute("INSERT INTO employees (name, agreed_salary, public_key) VALUES (?, ?, ?)",
+                  (name, agreed_salary, public_key))
+        conn.commit()
+        employee_id = c.lastrowid
+        conn.close()
+        return jsonify({'status': 'success', 'employee_id': employee_id})
+    return render_template('add_employee.html')
+
+@app.route('/add_data', methods=['GET', 'POST'])
+@login_required
+def add_data():
+    if request.method == 'POST':
+        employee_id = int(request.form['employee_id'])
+        date = request.form['date']
+        hours_worked = float(request.form['hours_worked'])
+        overtime_hours = float(request.form['overtime_hours'])
+        kpi_score = float(request.form['kpi_score'])
+        conn = sqlite3.connect('payroll.db')
+        c = conn.cursor()
+        c.execute("INSERT INTO attendance (employee_id, date, hours_worked, overtime_hours) VALUES (?, ?, ?, ?)",
+                  (employee_id, date, hours_worked, overtime_hours))
+        c.execute("INSERT INTO kpi (employee_id, date, kpi_score) VALUES (?, ?, ?)",
+                  (employee_id, date, kpi_score))
+        conn.commit()
+        conn.close()
+        return jsonify({'status': 'success'})
+    
+    conn = sqlite3.connect('payroll.db')
+    c = conn.cursor()
+    c.execute("SELECT id, name FROM employees")
+    employees = c.fetchall()
+    conn.close()
+    return render_template('add_data.html', employees=employees)
+
+@app.route('/process_payroll', methods=['GET', 'POST'])
+@login_required
+def process_payroll():
+    if request.method == 'POST':
+        try:
+            employee_id = int(request.form['employee_id'])
+            month = request.form['month']
+            transaction = payroll_system.process_payroll(employee_id, month)
+            return app.response_class(
+                response=json.dumps({'status': 'success', 'transaction': transaction}),
+                status=200,
+                mimetype='application/json'
+            )
+
+        except Exception as e:
+            print("Error in process_payroll:", e)
+            return jsonify({'status': 'error', 'message': str(e)}), 500
+    
+    conn = sqlite3.connect('payroll.db')
+    c = conn.cursor()   
+    c.execute("SELECT id, name FROM employees")
+    employees = c.fetchall()
+    conn.close()
+    return render_template('process_payroll.html', employees=employees)
+
+@app.route('/view_transactions')
+@login_required
+def view_transactions():
+    transactions = []
+    try:
+        for block in payroll_system.blockchain.chain:
+            for tx_b64 in block.transactions:
+                try:
+                    encrypted_bytes = base64.b64decode(tx_b64)
+                    decrypted_json = payroll_system.crypto.aes_decrypt(encrypted_bytes)
+                    tx_dict = json.loads(decrypted_json)
+                    transactions.append(tx_dict)
+                except Exception as e:
+                    transactions.append({
+                        'error': f'Không thể giải mã: {str(e)}', 
+                        'raw_data': tx_b64[:50] + '...' if len(tx_b64) > 50 else tx_b64
+                    })
+    except Exception as e:
+        print(f"Error in view_transactions: {e}")
+        transactions = [{'error': f'Lỗi hệ thống: {str(e)}', 'raw_data': ''}]
+
+    return render_template('view_transactions.html', transactions=transactions)
+
+@app.route('/chitietblockchain')
+@login_required
+def chitietblockchain():
+    blockchain = payroll_system.blockchain
+    blocks = blockchain.get_blocks_with_details()
+    blockchain_stats = blockchain.get_blockchain_stats()
+    
+    # Tính tổng lương và giải mã transactions
+    total_salary = 0
+    for block in blocks:
+        decoded_transactions = []
+        for tx_b64 in block['transactions']:
+            try:
+                encrypted_bytes = base64.b64decode(tx_b64)
+                decrypted_json = payroll_system.crypto.aes_decrypt(encrypted_bytes)
+                tx_dict = json.loads(decrypted_json)
+                decoded_transactions.append(tx_dict)
+                total_salary += tx_dict.get('total_salary', 0)
+            except Exception as e:
+                decoded_transactions.append({'error': f'Không thể giải mã: {str(e)}'})
+        
+        block['transactions'] = decoded_transactions
+    
+    blockchain_stats['total_salary'] = total_salary
+    blockchain_stats['chain_integrity'] = "✅ Hợp lệ" if blockchain_stats['chain_valid'] else "❌ Không hợp lệ"
+    
+    return render_template('chitietblockchain.html', blocks=blocks, blockchain_stats=blockchain_stats)
+
+@app.route('/user_management')
+@admin_required
+def user_management():
+    users = auth_system.get_all_users()
+    return render_template('user_management.html', users=users)
+
+@app.route('/create_user', methods=['POST'])
+@admin_required
+def create_user():
+    try:
+        username = request.form['username']
+        password = request.form['password']
+        role = request.form['role']
+        
+        conn = sqlite3.connect('payroll.db')
+        c = conn.cursor()
+        c.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
+                  (username, password, role))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/deactivate_user', methods=['POST'])
+@admin_required
+def deactivate_user():
+    try:
+        user_id = request.json['user_id']
+        conn = sqlite3.connect('payroll.db')
+        c = conn.cursor()
+        c.execute("UPDATE users SET is_active = 0 WHERE id = ?", (user_id,))
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+# Thay thế phần route @app.route('/reports') trong app.py
+
+@app.route('/reports')
+@login_required
+def reports():
+    try:
+        # Sử dụng ReportGenerator để lấy thống kê
+        from backend.report_generator import ReportGenerator
+        report_gen = ReportGenerator()
+        stats = report_gen.get_salary_statistics()
+        
+        # Lấy thống kê từ blockchain
+        blockchain_stats = payroll_system.blockchain.get_blockchain_stats()
+        monthly_stats = payroll_system.blockchain.get_transaction_volume_by_month()
+        
+        # Cập nhật stats với thông tin blockchain
+        stats.update({
+            'blockchain_blocks': blockchain_stats.get('total_blocks', 0),
+            'blockchain_valid': blockchain_stats.get('chain_valid', False)
+        })
+        
+        print(f"Debug - Stats: {stats}")  # Debug line
+        print(f"Debug - Monthly stats: {monthly_stats}")  # Debug line
+        
+        return render_template('reports.html', stats=stats, monthly_stats=monthly_stats)
+        
+    except Exception as e:
+        print(f"Error in reports: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        # Fallback với dữ liệu mặc định
+        stats = {
+            'total_salary': 0,
+            'total_employees': 0,
+            'total_transactions': 0,
+            'avg_kpi': 0,
+            'blockchain_blocks': 0,
+            'blockchain_valid': False
+        }
+        monthly_stats = {}
+        return render_template('reports.html', stats=stats, monthly_stats=monthly_stats)
+
+@app.route('/export/pdf')
+@login_required
+def export_pdf():
+    try:
+        from backend.report_generator import ReportGenerator
+        report_gen = ReportGenerator()
+        pdf_buffer = report_gen.generate_salary_report_pdf()
+        
+        return send_file(
+            pdf_buffer,
+            as_attachment=True,
+            download_name=f'salary_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt',
+            mimetype='text/plain'
+        )
+    except Exception as e:
+        print(f'Error exporting PDF: {e}')
+        flash(f'Lỗi xuất PDF: {str(e)}', 'error')
+        return redirect(url_for('reports'))
+
+@app.route('/export/excel')
+@login_required
+def export_excel():
+    try:
+        from backend.report_generator import ReportGenerator
+        report_gen = ReportGenerator()
+        excel_buffer = report_gen.generate_salary_report_excel()
+        
+        return send_file(
+            excel_buffer,
+            as_attachment=True,
+            download_name=f'salary_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv',
+            mimetype='text/csv'
+        )
+    except Exception as e:
+        print(f'Error exporting Excel: {e}')
+        flash(f'Lỗi xuất Excel: {str(e)}', 'error')
+        return redirect(url_for('reports'))
+
+# Jinja2 filter for JSON serialization
+@app.template_filter('tojsonfilter')
+def to_json_filter(obj):
+    return json.dumps(obj)
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+# Thêm route debug vào app.py để kiểm tra dữ liệu
+
+@app.route('/debug_blockchain')
+@login_required
+def debug_blockchain():
+    """Route debug để kiểm tra dữ liệu blockchain"""
+    try:
+        debug_info = {
+            'blockchain_blocks': len(payroll_system.blockchain.chain),
+            'transactions_raw': [],
+            'transactions_decoded': [],
+            'decoding_errors': []
+        }
+        
+        for i, block in enumerate(payroll_system.blockchain.chain):
+            debug_info['transactions_raw'].append({
+                'block_index': i,
+                'transaction_count': len(block.transactions),
+                'transactions': block.transactions[:2] if block.transactions else []  # First 2 for preview
+            })
+            
+            for j, tx_b64 in enumerate(block.transactions):
+                try:
+                    if isinstance(tx_b64, str):
+                        # Thử giải mã
+                        encrypted_bytes = base64.b64decode(tx_b64)
+                        decrypted_json = payroll_system.crypto.aes_decrypt(encrypted_bytes)
+                        tx_dict = json.loads(decrypted_json)
+                        
+                        debug_info['transactions_decoded'].append({
+                            'block_index': i,
+                            'transaction_index': j,
+                            'transaction': tx_dict
+                        })
+                    else:
+                        # Nếu không phải string, có thể là dict
+                        debug_info['transactions_decoded'].append({
+                            'block_index': i,
+                            'transaction_index': j,
+                            'transaction': tx_b64,
+                            'type': str(type(tx_b64))
+                        })
+                        
+                except Exception as e:
+                    debug_info['decoding_errors'].append({
+                        'block_index': i,
+                        'transaction_index': j,
+                        'error': str(e),
+                        'raw_data_preview': str(tx_b64)[:100] if tx_b64 else 'Empty'
+                    })
+        
+        return jsonify(debug_info)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)})
+    
+# Thêm các route debug này vào app.py để kiểm tra
+
+@app.route('/debug_blockchain')
+@login_required
+def debug_blockchain():
+    """Route debug để kiểm tra dữ liệu blockchain"""
+    try:
+        debug_info = {
+            'blockchain_blocks': len(payroll_system.blockchain.chain),
+            'transactions_raw': [],
+            'transactions_decoded': [],
+            'decoding_errors': []
+        }
+        
+        for i, block in enumerate(payroll_system.blockchain.chain):
+            block_info = {
+                'block_index': i,
+                'transaction_count': len(block.transactions),
+                'transactions_preview': []
+            }
+            
+            # Chỉ hiển thị 2 transaction đầu để không quá dài
+            for j, tx_data in enumerate(block.transactions[:2]):
+                block_info['transactions_preview'].append({
+                    'index': j,
+                    'type': str(type(tx_data)),
+                    'length': len(str(tx_data)) if tx_data else 0,
+                    'preview': str(tx_data)[:100] + '...' if len(str(tx_data)) > 100 else str(tx_data)
+                })
+            
+            debug_info['transactions_raw'].append(block_info)
+            
+            # Thử decode từng transaction
+            for j, tx_data in enumerate(block.transactions):
+                try:
+                    if isinstance(tx_data, str):
+                        # Thử decode base64 + decrypt
+                        try:
+                            encrypted_bytes = base64.b64decode(tx_data)
+                            decrypted_json = payroll_system.crypto.aes_decrypt(encrypted_bytes)
+                            tx_dict = json.loads(decrypted_json)
+                            
+                            debug_info['transactions_decoded'].append({
+                                'block_index': i,
+                                'transaction_index': j,
+                                'method': 'base64_decrypt',
+                                'transaction': tx_dict
+                            })
+                        except Exception as decrypt_error:
+                            # Thử parse JSON trực tiếp
+                            try:
+                                tx_dict = json.loads(tx_data)
+                                debug_info['transactions_decoded'].append({
+                                    'block_index': i,
+                                    'transaction_index': j,
+                                    'method': 'direct_json',
+                                    'transaction': tx_dict
+                                })
+                            except Exception as json_error:
+                                debug_info['decoding_errors'].append({
+                                    'block_index': i,
+                                    'transaction_index': j,
+                                    'decrypt_error': str(decrypt_error),
+                                    'json_error': str(json_error),
+                                    'data_preview': str(tx_data)[:100]
+                                })
+                    elif isinstance(tx_data, dict):
+                        debug_info['transactions_decoded'].append({
+                            'block_index': i,
+                            'transaction_index': j,
+                            'method': 'already_dict',
+                            'transaction': tx_data
+                        })
+                    else:
+                        debug_info['decoding_errors'].append({
+                            'block_index': i,
+                            'transaction_index': j,
+                            'error': f'Unknown type: {type(tx_data)}',
+                            'data': str(tx_data)
+                        })
+                        
+                except Exception as e:
+                    debug_info['decoding_errors'].append({
+                        'block_index': i,
+                        'transaction_index': j,
+                        'error': str(e),
+                        'data_preview': str(tx_data)[:100] if tx_data else 'Empty'
+                    })
+        
+        return jsonify(debug_info)
+        
+    except Exception as e:
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()})
+
+@app.route('/debug_database')
+@login_required
+def debug_database():
+    """Debug route để kiểm tra dữ liệu database"""
+    try:
+        conn = sqlite3.connect('payroll.db')
+        c = conn.cursor()
+        
+        debug_info = {}
+        
+        # Kiểm tra bảng employees
+        c.execute("SELECT COUNT(*) FROM employees")
+        debug_info['employees_count'] = c.fetchone()[0]
+        
+        c.execute("SELECT * FROM employees LIMIT 5")
+        debug_info['employees_sample'] = c.fetchall()
+        
+        # Kiểm tra bảng attendance
+        c.execute("SELECT COUNT(*) FROM attendance")
+        debug_info['attendance_count'] = c.fetchone()[0]
+        
+        c.execute("SELECT * FROM attendance LIMIT 5")
+        debug_info['attendance_sample'] = c.fetchall()
+        
+        # Kiểm tra bảng kpi
+        c.execute("SELECT COUNT(*) FROM kpi")
+        debug_info['kpi_count'] = c.fetchone()[0]
+        
+        c.execute("SELECT * FROM kpi LIMIT 5")
+        debug_info['kpi_sample'] = c.fetchall()
+        
+        # Kiểm tra tháng có dữ liệu
+        c.execute("""SELECT strftime('%Y-%m', date) as month, COUNT(*) as count 
+                     FROM kpi 
+                     GROUP BY strftime('%Y-%m', date) 
+                     ORDER BY month""")
+        debug_info['months_with_data'] = c.fetchall()
+        
+        conn.close()
+        
+        return jsonify(debug_info)
+        
+    except Exception as e:
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()})
+
+@app.route('/test_transaction')
+@login_required  
+def test_transaction():
+    """Tạo một giao dịch test để kiểm tra"""
+    try:
+        # Kiểm tra xem có nhân viên nào không
+        conn = sqlite3.connect('payroll.db')
+        c = conn.cursor()
+        c.execute("SELECT id FROM employees LIMIT 1")
+        employee = c.fetchone()
+        
+        if not employee:
+            # Tạo nhân viên test
+            from backend.crypto_utils import CryptoUtils
+            crypto = CryptoUtils()
+            c.execute("INSERT INTO employees (name, agreed_salary, public_key) VALUES (?, ?, ?)",
+                      ("Test Employee", 1000, crypto.get_public_key()))
+            employee_id = c.lastrowid
+            
+            # Thêm dữ liệu attendance và kpi test
+            c.execute("INSERT INTO attendance (employee_id, date, hours_worked, overtime_hours) VALUES (?, ?, ?, ?)",
+                      (employee_id, '2025-07-01', 160, 10))
+            c.execute("INSERT INTO kpi (employee_id, date, kpi_score) VALUES (?, ?, ?)",
+                      (employee_id, '2025-07-01', 85))
+            conn.commit()
+        else:
+            employee_id = employee[0]
+            
+        conn.close()
+        
+        # Tạo giao dịch test
+        result = payroll_system.process_payroll(employee_id, '2025-07')
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Tạo giao dịch test thành công',
+            'transaction': result,
+            'employee_id': employee_id
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'status': 'error', 
+            'message': str(e),
+            'traceback': traceback.format_exc()
+        })
+
+@app.route('/reset_blockchain')
+@admin_required
+def reset_blockchain():
+    """Reset blockchain để test (chỉ admin)"""
+    try:
+        global payroll_system
+        payroll_system = PayrollSystem()
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Đã reset blockchain thành công',
+            'blocks': len(payroll_system.blockchain.chain)
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        })

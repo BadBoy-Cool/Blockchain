@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nhập Dữ Liệu Chấm Công/KPI</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto p-4">
+        <h1 class="text-2xl font-bold mb-4">Nhập Dữ Liệu Chấm Công/KPI</h1>
+        <form id="dataForm" class="bg-white p-6 rounded shadow-md">
+            <div class="mb-4">
+                <label class="block text-gray-700">Nhân Viên</label>
+                <select name="employee_id" class="w-full p-2 border rounded" required>
+                    {% for emp in employees %}
+                        <option value="{{ emp[0] }}">{{ emp[1] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700">Ngày (YYYY-MM-DD)</label>
+                <input type="date" name="date" class="w-full p-2 border rounded" required>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700">Giờ Làm Việc</label>
+                <input type="number" name="hours_worked" class="w-full p-2 border rounded" required>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700">Giờ Tăng Ca</label>
+                <input type="number" name="overtime_hours" class="w-full p-2 border rounded" required>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700">Điểm KPI</label>
+                <input type="number" name="kpi_score" class="w-full p-2 border rounded" required>
+            </div>
+            <button type="submit" class="bg-green-500 text-white p-2 rounded hover:bg-green-600">Thêm</button>
+        </form>
+        <div id="result" class="mt-4"></div>
+    </div>
+    <script>
+        document.getElementById('dataForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const response = await fetch('/add_data', { method: 'POST', body: formData });
+            const result = await response.json();
+            document.getElementById('result').innerText = 'Thêm dữ liệu thành công!';
+        });
+    </script>
+</body>
+</html>
