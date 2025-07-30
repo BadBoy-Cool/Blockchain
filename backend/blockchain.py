@@ -37,6 +37,7 @@ class Block:
         self.previous_hash = previous_hash
         self.nonce = nonce
         self.hash = self.calculate_hash()
+        self.is_valid = True
 
     def calculate_hash(self):
         block_string = json.dumps({
@@ -48,7 +49,7 @@ class Block:
         }, sort_keys=True)
         return hashlib.sha256(block_string.encode()).hexdigest()
 
-    def mine_block(self, difficulty=2):
+    def mine_block(self, difficulty=1):
         target = "0" * difficulty
         start_time = time.time()
         
@@ -90,7 +91,7 @@ class Block:
         return block
     
 class Blockchain:
-    def __init__(self, difficulty=2):
+    def __init__(self, difficulty=1):
         self.difficulty = difficulty
         self.chain = []
         self.pending_transactions = []
@@ -98,33 +99,28 @@ class Blockchain:
         self.blockchain_file = "blockchain.json"
         self.backup_file = "blockchain_backup.json"
         
-        # Thử tải blockchain từ file trước, nếu không có thì tạo genesis
         if not self.load_existing_blockchain():
-            self.create_genesis_block()
+            print("Blockchain không thể load. Vui lòng kiểm tra file hoặc khôi phục từ backup.")
 
     def load_existing_blockchain(self):
-        """Tải blockchain từ file nếu tồn tại"""
         try:
             if os.path.exists(self.blockchain_file):
                 print(f"Loading existing blockchain from {self.blockchain_file}")
                 with open(self.blockchain_file, 'r') as f:
                     data = json.load(f)
-                    if data:  # Nếu file không rỗng
+                    if data:
                         self.chain = [Block.from_dict(block_data) for block_data in data]
                         print(f"Loaded {len(self.chain)} blocks from existing blockchain")
-                        
-                        # Validate blockchain sau khi load
+
                         if self.validate_chain():
                             print("Blockchain validation successful")
                             return True
                         else:
-                            print("Blockchain validation failed, creating new genesis block")
-                            self.chain = []
-                            return False
+                            print("Blockchain validation failed. Không ghi đè.")
+                            return False  # Không tạo genesis mới!
             return False
         except Exception as e:
             print(f"Error loading blockchain: {e}")
-            self.chain = []
             return False
 
     def create_genesis_block(self):
@@ -191,34 +187,14 @@ class Blockchain:
             print(f"Error creating backup: {e}")
 
     def restore_from_backup(self):
-        """Khôi phục blockchain từ backup"""
-        try:
-            if os.path.exists(self.backup_file):
-                with open(self.backup_file, 'r') as f:
-                    backup_data = json.load(f)
-                
-                # Validate backup data
-                temp_chain = [Block.from_dict(block_data) for block_data in backup_data]
-                
-                # Tạo blockchain tạm để validate
-                temp_blockchain = Blockchain.__new__(Blockchain)
-                temp_blockchain.chain = temp_chain
-                temp_blockchain.difficulty = self.difficulty
-                
-                if temp_blockchain.validate_chain():
-                    self.chain = temp_chain
-                    self.save_to_file()
-                    print("Blockchain restored from backup successfully")
-                    return True
-                else:
-                    print("Backup blockchain is invalid")
-                    return False
-            else:
-                print("No backup file found")
-                return False
-        except Exception as e:
-            print(f"Error restoring from backup: {e}")
-            return False
+        if os.path.exists(self.backup_file):
+            with open(self.backup_file, 'r') as f:
+                data = json.load(f)
+                self.chain = [Block.from_dict(block) for block in data]
+            self.save_to_file()
+            return True
+        return False
+   
 
     def validate_new_block(self, new_block):
         latest_block = self.get_latest_block()
@@ -293,22 +269,8 @@ class Blockchain:
             
         return blocks_info
 
-    def search_transactions_by_employee(self, employee_id):
-        transactions = []
-        for block in self.chain:
-            for tx in block.transactions:
-                try:
-                    # Thử decode transaction
-                    tx_dict = self._decode_transaction(tx)
-                    if tx_dict and tx_dict.get('employee_id') == employee_id:
-                        transactions.append({
-                            'block_index': block.index,
-                            'transaction': tx_dict,
-                            'timestamp': block.timestamp
-                        })
-                except:
-                    continue
-        return transactions
+    
+
 
     def get_transaction_volume_by_month(self):
         """Cải thiện hàm thống kê theo tháng"""
@@ -447,3 +409,36 @@ class Blockchain:
             'chain_valid': self.validate_chain(),
             'last_block_time': datetime.fromtimestamp(self.get_latest_block().timestamp).strftime('%Y-%m-%d %H:%M:%S') if self.chain else None
         }
+class Transaction:
+    def __init__(self, sender, receiver, amount, signature):
+        self.sender = sender
+        self.receiver = receiver
+        self.amount = amount  # SalaryData object
+        self.signature = signature
+
+    def to_dict(self):
+        return {
+            "sender": self.sender,
+            "receiver": self.receiver,
+            "amount": self.amount.to_dict(),
+            "signature": self.signature
+        }
+
+    @staticmethod
+    def from_dict(data):
+        return Transaction(
+            sender=data['sender'],
+            receiver=data['receiver'],
+            amount=SalaryData.from_dict(data['amount']),
+            signature=data['signature']
+        )
+
+    def is_chain_valid(self):
+        for i in range(1, len(self.chain)):
+            current = self.chain[i]
+            previous = self.chain[i - 1]
+            if current.hash != current.compute_hash():
+                return False
+            if current.previous_hash != previous.hash:
+                return False
+        return True

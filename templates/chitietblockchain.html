@@ -44,6 +44,16 @@
 <body class="bg-gray-100 min-h-screen">
     <div class="container mx-auto p-6">
         <!-- Header -->
+        {% if not chain_valid %}
+            <div class="bg-red-500 text-white p-4 rounded-lg mb-6 font-bold flex justify-between items-center">
+                Cảnh báo: Blockchain đã bị chỉnh sửa hoặc không hợp lệ!
+                <form action="/restore_blockchain" method="POST" class="ml-4">
+                    <button type="submit" class="bg-white text-red-600 font-semibold px-4 py-2 rounded hover:bg-red-100 transition">
+                        🔄 Khôi phục từ bản sao lưu
+                    </button>
+                </form>
+            </div>
+        {% endif %}
         <div class="text-center mb-8">
             <h1 class="text-4xl font-bold text-gray-800 mb-2">🔗 Chi Tiết Blockchain</h1>
             <p class="text-gray-600">Khám phá cấu trúc và dữ liệu của blockchain hệ thống lương</p>

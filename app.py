@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 import json
 import sqlite3
 import base64
+import datetime
 from datetime import datetime
 import atexit
 from contextlib import contextmanager
@@ -315,60 +316,62 @@ def view_transactions():
         ])
 
 # Route cải thiện cho chitietblockchain
-@app.route('/chitietblockchain')
+@app.route("/chitietblockchain")
 @login_required
 def chitietblockchain():
-    try:
-        payroll = get_payroll_system()
-        blocks = payroll.blockchain.get_blocks_with_details()
-        blockchain_stats = payroll.blockchain.get_blockchain_stats()
-        
-        # Decode transactions cho từng block
-        total_salary = 0
-        for block in blocks:
-            decoded_transactions = []
-            for tx_b64 in block['transactions']:
-                try:
-                    if isinstance(tx_b64, str):
-                        encrypted_bytes = base64.b64decode(tx_b64)
-                        decrypted_json = payroll.crypto.aes_decrypt(encrypted_bytes)
-                        tx_dict = json.loads(decrypted_json)
-                    else:
-                        tx_dict = tx_b64
-                    
-                    decoded_transactions.append(tx_dict)
-                    total_salary += tx_dict.get('total_salary', 0)
-                    
-                except Exception as e:
-                    decoded_transactions.append({
-                        'error': f'Không thể giải mã: {str(e)}',
-                        'raw_preview': str(tx_b64)[:50] + '...' if len(str(tx_b64)) > 50 else str(tx_b64)
-                    })
-            
-            block['transactions'] = decoded_transactions
-        
-        # Cập nhật stats
-        blockchain_stats['total_salary'] = total_salary
-        blockchain_stats['chain_integrity'] = "✅ Hợp lệ" if blockchain_stats['chain_valid'] else "❌ Không hợp lệ"
-        
-        return render_template('chitietblockchain.html', 
-                             blocks=blocks, 
-                             blockchain_stats=blockchain_stats)
-                             
-    except Exception as e:
-        print(f"Error in chitietblockchain: {e}")
-        import traceback
-        traceback.print_exc()
-        
-        # Fallback với dữ liệu mặc định
-        return render_template('chitietblockchain.html', 
-                             blocks=[], 
-                             blockchain_stats={
-                                 'total_blocks': 0,
-                                 'total_transactions': 0,
-                                 'total_salary': 0,
-                                 'chain_integrity': "❌ Lỗi"
-                             })
+    payroll = get_payroll_system()
+    blockchain = payroll.blockchain
+
+    chain_valid = blockchain.validate_chain()  # kiểm tra lại sau restore
+
+    blocks = []
+    total_transactions = 0
+    total_salary = 0
+
+    for block in blockchain.chain:
+        # có thể xử lý và format dữ liệu ở đây
+        block_data = {
+            "index": block.index,
+            "transaction_count": len(block.transactions),
+            "transactions": [],
+            "hash": block.hash,
+            "previous_hash": block.previous_hash,
+            "is_valid": block.is_valid,
+            "chain_valid": True,
+            "size_bytes": len(json.dumps(block.to_dict()).encode("utf-8"))
+        }
+
+        if block.index > 0:
+            prev_block = blockchain.chain[block.index - 1]
+            if block.previous_hash != prev_block.hash:
+                block_data["chain_valid"] = False
+
+        for tx in block.transactions:
+            try:
+                tx_dict = blockchain._decode_transaction(tx)
+                block_data["transactions"].append(tx_dict)
+
+                # cộng lương để thống kê
+                total_transactions += 1
+                total_salary += tx_dict.get("total_salary", 0)
+
+            except Exception as e:
+                block_data["transactions"].append({
+                    "error": str(e),
+                    "raw_data": tx
+                })
+
+        blocks.append(block_data)
+
+    blockchain_stats = {
+        "total_blocks": len(blockchain.chain),
+        "total_transactions": total_transactions,
+        "total_salary": total_salary,
+        "chain_integrity": "Hợp lệ" if chain_valid else "Không hợp lệ"
+    }
+
+    return render_template("chitietblockchain.html", blocks=blocks, blockchain_stats=blockchain_stats, chain_valid=chain_valid)
+
 
 # Route mới để kiểm tra trạng thái blockchain
 @app.route('/blockchain_status')
@@ -378,7 +381,7 @@ def blockchain_status():
     try:
         payroll = get_payroll_system()
         stats = payroll.get_system_stats()
-        
+
         return jsonify({
             'status': 'success',
             'blockchain_info': stats['blockchain_info'],
@@ -421,29 +424,15 @@ def backup_blockchain():
         }), 500
 
 @app.route('/restore_blockchain', methods=['POST'])
-@admin_required
+@login_required
 def restore_blockchain():
-    """Khôi phục blockchain từ backup"""
-    try:
-        payroll = get_payroll_system()
-        success = payroll.restore_blockchain()
-        
-        if success:
-            return jsonify({
-                'status': 'success',
-                'message': 'Blockchain được khôi phục thành công'
-            })
-        else:
-            return jsonify({
-                'status': 'error',
-                'message': 'Không thể khôi phục từ backup'
-            }), 500
-            
-    except Exception as e:
-        return jsonify({
-            'status': 'error',
-            'message': str(e)
-        }), 500
+    payroll = get_payroll_system()  # Lấy instance đã khởi tạo Blockchain
+    if payroll.blockchain.restore_from_backup():
+        flash("Đã khôi phục blockchain từ bản sao lưu", "success")
+    else:
+        flash("Khôi phục thất bại. Kiểm tra file backup.", "error")
+    return redirect(url_for('chitietblockchain'))
+
 
 # Force save blockchain (cho admin)
 @app.route('/force_save_blockchain', methods=['POST'])
@@ -592,10 +581,6 @@ def export_excel():
 def to_json_filter(obj):
     return json.dumps(obj)
 
-if __name__ == '__main__':
-    app.run(debug=True)
-
-
 # Thêm route debug vào app.py để kiểm tra dữ liệu
 
 @app.route('/debug_blockchain')
@@ -651,100 +636,6 @@ def debug_blockchain():
         
     except Exception as e:
         return jsonify({'error': str(e)})
-    
-# Thêm các route debug này vào app.py để kiểm tra
-
-@app.route('/debug_blockchain')
-@login_required
-def debug_blockchain():
-    """Route debug để kiểm tra dữ liệu blockchain"""
-    try:
-        debug_info = {
-            'blockchain_blocks': len(payroll_system.blockchain.chain),
-            'transactions_raw': [],
-            'transactions_decoded': [],
-            'decoding_errors': []
-        }
-        
-        for i, block in enumerate(payroll_system.blockchain.chain):
-            block_info = {
-                'block_index': i,
-                'transaction_count': len(block.transactions),
-                'transactions_preview': []
-            }
-            
-            # Chỉ hiển thị 2 transaction đầu để không quá dài
-            for j, tx_data in enumerate(block.transactions[:2]):
-                block_info['transactions_preview'].append({
-                    'index': j,
-                    'type': str(type(tx_data)),
-                    'length': len(str(tx_data)) if tx_data else 0,
-                    'preview': str(tx_data)[:100] + '...' if len(str(tx_data)) > 100 else str(tx_data)
-                })
-            
-            debug_info['transactions_raw'].append(block_info)
-            
-            # Thử decode từng transaction
-            for j, tx_data in enumerate(block.transactions):
-                try:
-                    if isinstance(tx_data, str):
-                        # Thử decode base64 + decrypt
-                        try:
-                            encrypted_bytes = base64.b64decode(tx_data)
-                            decrypted_json = payroll_system.crypto.aes_decrypt(encrypted_bytes)
-                            tx_dict = json.loads(decrypted_json)
-                            
-                            debug_info['transactions_decoded'].append({
-                                'block_index': i,
-                                'transaction_index': j,
-                                'method': 'base64_decrypt',
-                                'transaction': tx_dict
-                            })
-                        except Exception as decrypt_error:
-                            # Thử parse JSON trực tiếp
-                            try:
-                                tx_dict = json.loads(tx_data)
-                                debug_info['transactions_decoded'].append({
-                                    'block_index': i,
-                                    'transaction_index': j,
-                                    'method': 'direct_json',
-                                    'transaction': tx_dict
-                                })
-                            except Exception as json_error:
-                                debug_info['decoding_errors'].append({
-                                    'block_index': i,
-                                    'transaction_index': j,
-                                    'decrypt_error': str(decrypt_error),
-                                    'json_error': str(json_error),
-                                    'data_preview': str(tx_data)[:100]
-                                })
-                    elif isinstance(tx_data, dict):
-                        debug_info['transactions_decoded'].append({
-                            'block_index': i,
-                            'transaction_index': j,
-                            'method': 'already_dict',
-                            'transaction': tx_data
-                        })
-                    else:
-                        debug_info['decoding_errors'].append({
-                            'block_index': i,
-                            'transaction_index': j,
-                            'error': f'Unknown type: {type(tx_data)}',
-                            'data': str(tx_data)
-                        })
-                        
-                except Exception as e:
-                    debug_info['decoding_errors'].append({
-                        'block_index': i,
-                        'transaction_index': j,
-                        'error': str(e),
-                        'data_preview': str(tx_data)[:100] if tx_data else 'Empty'
-                    })
-        
-        return jsonify(debug_info)
-        
-    except Exception as e:
-        return jsonify({'error': str(e), 'traceback': traceback.format_exc()})
 
 @app.route('/debug_database')
 @login_required
@@ -858,3 +749,6 @@ def reset_blockchain():
             'status': 'error',
             'message': str(e)
         })
+
+if __name__ == '__main__':
+    app.run(debug=True)
