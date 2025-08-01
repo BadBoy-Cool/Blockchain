@@ -3,6 +3,7 @@ import json
 import time
 from datetime import datetime
 import base64
+import threading
 import os
 from ecdsa import SigningKey, VerifyingKey, SECP256k1
 
@@ -99,9 +100,14 @@ class Blockchain:
         self.mining_reward = 10
         self.blockchain_file = "blockchain.json"
         self.backup_file = "blockchain_backup.json"
+        self.lock = threading.Lock()  # Thêm lock để đồng bộ
         
         if not self.load_existing_blockchain():
             print("Blockchain không thể load. Vui lòng kiểm tra file hoặc khôi phục từ backup.")
+
+            #Tạo genesis block nếu chuỗi bị rỗng
+        if len(self.chain) == 0:
+            self.create_genesis_block()
 
     def load_existing_blockchain(self):
         try:
@@ -138,6 +144,8 @@ class Blockchain:
         return self.chain[-1]
 
     def add_block(self, transactions):
+        with self.lock:  # Đảm bảo chỉ 1 thread thực hiện tại 1 thời điểm
+            print(f"Adding block with {len(transactions)} transactions")
         """Thêm block mới và lưu ngay lập tức"""
         new_block = Block(
             len(self.chain), 

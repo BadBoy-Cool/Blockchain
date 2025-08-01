@@ -164,8 +164,15 @@ def login():
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['role'] = user['role']
+            session['employee_id'] = user.get('employee_id')  # nếu có
+
             flash(f'Chào mừng {username}!', 'success')
-            return redirect(url_for('index'))
+
+            # Chuyển hướng theo role
+            if user['role'] == 'admin':
+                return redirect(url_for('index'))
+            else:
+                return redirect(url_for('view_transactions'))
         else:
             flash('Sai tên đăng nhập hoặc mật khẩu', 'error')
     
@@ -260,6 +267,9 @@ def process_payroll():
                 transaction["signature"] = signature
                 transaction["public_key"] = wallet.get_public_key_hex()
 
+                payroll.blockchain.add_block([transaction])  # THÊM BLOCK mới chứa 1 transaction
+                payroll.blockchain.save_to_file()           # Lưu lại file blockchain.json
+
                 return app.response_class(
                     response=json.dumps({
                         'status': 'success', 
@@ -299,7 +309,16 @@ def view_transactions():
     try:
         payroll = get_payroll_system()
         transactions, errors = payroll.get_all_transactions()
-        
+
+        # Lấy thông tin người dùng từ session
+        role = session.get('role')
+        employee_id = session.get('employee_id')
+
+        # Nếu là nhân viên thì lọc transaction của riêng họ
+        if role != 'admin' and employee_id:
+            employee_id_str = str(employee_id)
+            transactions = [tx for tx in transactions if str(tx.get('employee_id')) == employee_id_str]
+
         # Format transactions để hiển thị
         formatted_transactions = []
         for tx in transactions:
@@ -325,16 +344,17 @@ def view_transactions():
                     'error': f'Lỗi format transaction: {str(e)}',
                     'raw_data': str(tx)[:100] + '...' if len(str(tx)) > 100 else str(tx)
                 })
-        
-        # Thêm thông tin lỗi decode
-        for error in errors:
-            formatted_transactions.append({
-                'error': f"Block {error['block_index']}: {error['error']}",
-                'raw_data': error['raw_data']
-            })
+
+        # Thêm lỗi decode (chỉ admin mới cần thấy lỗi này)
+        if role == 'admin':
+            for error in errors:
+                formatted_transactions.append({
+                    'error': f"Block {error['block_index']}: {error['error']}",
+                    'raw_data': error['raw_data']
+                })
 
         return render_template('view_transactions.html', transactions=formatted_transactions)
-        
+
     except Exception as e:
         print(f"Error in view_transactions: {e}")
         import traceback
@@ -342,6 +362,7 @@ def view_transactions():
         return render_template('view_transactions.html', transactions=[
             {'error': f'Lỗi hệ thống: {str(e)}', 'raw_data': ''}
         ])
+
 
 # Route cải thiện cho chitietblockchain
 @app.route("/chitietblockchain")
@@ -504,15 +525,18 @@ def create_user():
     try:
         username = request.form['username']
         password = request.form['password']
-        role = request.form['role']
-        
+        employee_id = request.form.get('employee_id')  # Đúng cú pháp
+        role = request.form.get('role', 'user')  # Mặc định là 'user' nếu không có trong form
+
         conn = sqlite3.connect('payroll.db')
         c = conn.cursor()
-        c.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
-                  (username, password, role))
+        c.execute(
+            "INSERT INTO users (username, password, role, employee_id) VALUES (?, ?, ?, ?)",
+            (username, password, role, employee_id)
+        )
         conn.commit()
         conn.close()
-        
+
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
