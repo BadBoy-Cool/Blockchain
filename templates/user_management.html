@@ -15,12 +15,14 @@
             <h2 class="text-xl font-semibold mb-4">Tạo tài khoản mới</h2>
             <form id="createUserForm" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <input type="text" name="username" placeholder="Tên đăng nhập" required
-                       class="p-3 border rounded-lg">
+                    class="p-3 border rounded-lg">
                 <input type="password" name="password" placeholder="Mật khẩu" required
-                       class="p-3 border rounded-lg">
-                <select name="role" class="p-3 border rounded-lg">
-                    <option value="user">Nhân viên</option>
-                    <option value="admin">Quản trị viên</option>
+                    class="p-3 border rounded-lg">
+                <select name="employee_id" class="p-3 border rounded-lg" required>
+                    <option value="">-- Chọn nhân viên --</option>
+                    {% for emp in employees %}
+                    <option value="{{ emp[0] }}">{{ emp[1] }}</option>
+                    {% endfor %}
                 </select>
                 <button type="submit" class="bg-green-500 text-white p-3 rounded-lg hover:bg-green-600">
                     Tạo tài khoản

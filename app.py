@@ -486,9 +486,17 @@ def force_save_blockchain():
     
 @app.route('/user_management')
 @admin_required
-def user_management():
-    users = auth_system.get_all_users()
-    return render_template('user_management.html', users=users)
+def user_manager():
+    conn = sqlite3.connect('payroll.db')
+    c = conn.cursor()
+    c.execute("SELECT id, name FROM employees")
+    employees = c.fetchall()
+
+    c.execute("SELECT * FROM users")
+    users = c.fetchall()
+    conn.close()
+
+    return render_template('user_management.html', users=users, employees=employees)
 
 @app.route('/create_user', methods=['POST'])
 @admin_required
