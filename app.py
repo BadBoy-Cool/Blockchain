@@ -153,30 +153,40 @@ def payroll_transaction():
 def index():
     return render_template('index.html')
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/login', methods=['GET', 'POST']) 
 def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
         
         user = auth_system.verify_user(username, password)
+
         if user:
+            # Kiểm tra nếu tài khoản bị vô hiệu hóa
+            if not user.get('is_active', 1):
+                flash('Tài khoản của bạn đã bị vô hiệu hóa.', 'error')
+                return render_template('login.html')
+
+            # Gán session
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['role'] = user['role']
-            session['employee_id'] = user.get('employee_id')  # nếu có
+            session['employee_id'] = user.get('employee_id')  # None nếu là admin
 
             flash(f'Chào mừng {username}!', 'success')
 
-            # Chuyển hướng theo role
+            # Nếu là admin → về index (toàn quyền)
             if user['role'] == 'admin':
                 return redirect(url_for('index'))
             else:
+                # Là nhân viên → chỉ được xem view_transactions
                 return redirect(url_for('view_transactions'))
+
         else:
             flash('Sai tên đăng nhập hoặc mật khẩu', 'error')
     
     return render_template('login.html')
+
 
 @app.route('/logout')
 def logout():
@@ -310,16 +320,19 @@ def view_transactions():
         payroll = get_payroll_system()
         transactions, errors = payroll.get_all_transactions()
 
-        # Lấy thông tin người dùng từ session
+        # Lấy thông tin từ session
         role = session.get('role')
         employee_id = session.get('employee_id')
 
-        # Nếu là nhân viên thì lọc transaction của riêng họ
-        if role != 'admin' and employee_id:
-            employee_id_str = str(employee_id)
-            transactions = [tx for tx in transactions if str(tx.get('employee_id')) == employee_id_str]
+        # Nếu là nhân viên (không phải admin) thì chỉ hiển thị giao dịch của họ
+        if role != 'admin':
+            if not employee_id:
+                return render_template('view_transactions.html', transactions=[
+                    {'error': 'Không tìm thấy thông tin nhân viên trong phiên đăng nhập.', 'raw_data': ''}
+                ])
+            transactions = [tx for tx in transactions if str(tx.get('employee_id')) == str(employee_id)]
 
-        # Format transactions để hiển thị
+        # Format các transaction
         formatted_transactions = []
         for tx in transactions:
             try:
@@ -339,29 +352,28 @@ def view_transactions():
                 }
                 formatted_transactions.append(formatted_tx)
             except Exception as e:
-                print(f"Error formatting transaction: {e}")
                 formatted_transactions.append({
-                    'error': f'Lỗi format transaction: {str(e)}',
+                    'error': f'Lỗi định dạng giao dịch: {str(e)}',
                     'raw_data': str(tx)[:100] + '...' if len(str(tx)) > 100 else str(tx)
                 })
 
-        # Thêm lỗi decode (chỉ admin mới cần thấy lỗi này)
+        # Chỉ admin mới xem được các lỗi
         if role == 'admin':
             for error in errors:
                 formatted_transactions.append({
-                    'error': f"Block {error['block_index']}: {error['error']}",
-                    'raw_data': error['raw_data']
+                    'error': f"Lỗi trong block {error.get('block_index', 'N/A')}: {error.get('error', 'Không xác định')}",
+                    'raw_data': error.get('raw_data', 'Không có')
                 })
 
         return render_template('view_transactions.html', transactions=formatted_transactions)
 
     except Exception as e:
-        print(f"Error in view_transactions: {e}")
         import traceback
         traceback.print_exc()
         return render_template('view_transactions.html', transactions=[
             {'error': f'Lỗi hệ thống: {str(e)}', 'raw_data': ''}
         ])
+
 
 
 # Route cải thiện cho chitietblockchain

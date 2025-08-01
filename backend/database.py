@@ -36,7 +36,7 @@ def init_db():
         )
     ''')
 
-    #Tạo bảng users (nếu chưa có)
+    #Tạo bảng users
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY,
