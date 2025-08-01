@@ -267,7 +267,7 @@ def process_payroll():
                 transaction["signature"] = signature
                 transaction["public_key"] = wallet.get_public_key_hex()
 
-                payroll.blockchain.add_block([transaction])  # THÊM BLOCK mới chứa 1 transaction
+                # payroll.blockchain.add_block([transaction])  # THÊM BLOCK mới chứa 1 transaction
                 payroll.blockchain.save_to_file()           # Lưu lại file blockchain.json
 
                 return app.response_class(
