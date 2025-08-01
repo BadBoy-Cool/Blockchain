@@ -4,6 +4,7 @@ import time
 from datetime import datetime
 import base64
 import os
+from ecdsa import SigningKey, VerifyingKey, SECP256k1
 
 class SalaryData:
     def __init__(self, name, amount, discount, bonus):

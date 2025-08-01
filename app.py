@@ -12,9 +12,11 @@ import os
 # Import backend modules
 from backend.database import init_db
 from backend.payroll_system import PayrollSystem
+from wallet import Wallet
+
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-here-change-in-production'
+app.secret_key = '123'
 
 # Khởi tạo CSDL
 init_db()
@@ -228,11 +230,36 @@ def process_payroll():
         try:
             employee_id = int(request.form['employee_id'])
             month = request.form['month']
-            
-            # Sử dụng context manager
+            private_key_hex = request.form.get("private_key")
+
+            if not private_key_hex:
+                flash("Thiếu khóa riêng để ký giao dịch.", "error")
+                return redirect(url_for('process_payroll'))
+
+            # Tạo ví từ khóa riêng
+            wallet = Wallet(private_key_hex=private_key_hex)
+
             with payroll_transaction() as payroll:
                 transaction = payroll.process_payroll(employee_id, month)
-                
+
+                # Tạo dữ liệu cần ký (chỉ lấy các trường đơn giản)
+                tx_data = {
+                    "employee_id": transaction["employee_id"],
+                    "month": transaction["month"],
+                    "base_salary": transaction["base_salary"],
+                    "overtime_salary": transaction["overtime_salary"],
+                    "kpi_bonus": transaction["kpi_bonus"],
+                    "total_salary": transaction["total_salary"]
+                }
+
+                # Ký giao dịch
+                message = json.dumps(tx_data, sort_keys=True)
+                signature = wallet.sign(message)
+
+                # Gắn chữ ký và khóa công khai vào transaction
+                transaction["signature"] = signature
+                transaction["public_key"] = wallet.get_public_key_hex()
+
                 return app.response_class(
                     response=json.dumps({
                         'status': 'success', 
@@ -255,14 +282,15 @@ def process_payroll():
                 'message': str(e),
                 'details': 'Check server logs for more information'
             }), 500
-    
-    # GET request - hiển thị form
+
+    # GET method: hiển thị form
     conn = sqlite3.connect('payroll.db')
     c = conn.cursor()   
     c.execute("SELECT id, name FROM employees")
     employees = c.fetchall()
     conn.close()
     return render_template('process_payroll.html', employees=employees)
+
 
 # Route cải thiện cho view_transactions
 @app.route('/view_transactions')
