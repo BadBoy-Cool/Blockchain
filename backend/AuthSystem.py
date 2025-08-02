@@ -15,14 +15,16 @@ class AuthSystem:
         
         # Tạo bảng users
         c.execute('''CREATE TABLE IF NOT EXISTS users
-                     (id INTEGER PRIMARY KEY, 
-                      username TEXT UNIQUE, 
-                      password_hash TEXT, 
-                      salt TEXT,
-                      role TEXT DEFAULT 'user',
-                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                      last_login TIMESTAMP,
-                      is_active BOOLEAN DEFAULT 1)''')
+             (id INTEGER PRIMARY KEY, 
+              username TEXT UNIQUE, 
+              password_hash TEXT, 
+              salt TEXT,
+              role TEXT DEFAULT 'user',
+              employee_id INTEGER,  -- THÊM DÒNG NÀY
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              last_login TIMESTAMP,
+              is_active BOOLEAN DEFAULT 1)''')
+
         
         # Tạo bảng sessions
         c.execute('''CREATE TABLE IF NOT EXISTS user_sessions
@@ -76,14 +78,15 @@ class AuthSystem:
         conn = sqlite3.connect('payroll.db')
         c = conn.cursor()
         
-        c.execute("SELECT id, password_hash, salt, role, is_active FROM users WHERE username = ?", (username,))
+        # Thêm employee_id vào SELECT
+        c.execute("SELECT id, password_hash, salt, role, is_active, employee_id FROM users WHERE username = ?", (username,))
         user = c.fetchone()
         
         if not user or not user[4]:  # user không tồn tại hoặc bị deactive
             conn.close()
             return None
             
-        user_id, stored_hash, salt, role, is_active = user
+        user_id, stored_hash, salt, role, is_active, employee_id = user
         password_hash, _ = self.hash_password(password, salt)
         
         if password_hash == stored_hash:
@@ -95,11 +98,13 @@ class AuthSystem:
             return {
                 'id': user_id,
                 'username': username,
-                'role': role
+                'role': role,
+                'employee_id': employee_id 
             }
         
         conn.close()
         return None
+
 
     def get_all_users(self):
         """Lấy danh sách tất cả users"""

@@ -153,30 +153,31 @@ def payroll_transaction():
 def index():
     return render_template('index.html')
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/login', methods=['GET', 'POST']) 
 def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        
-        user = auth_system.verify_user(username, password)
-        if user:
-            session['user_id'] = user['id']
-            session['username'] = user['username']
-            session['role'] = user['role']
-            session['employee_id'] = user.get('employee_id')  # nếu có
 
-            flash(f'Chào mừng {username}!', 'success')
+        conn = sqlite3.connect('payroll.db')
+        c = conn.cursor()
+        c.execute("SELECT id, username, password, role, employee_id FROM users WHERE username = ?", (username,))
+        user = c.fetchone()
+        conn.close()
 
-            # Chuyển hướng theo role
-            if user['role'] == 'admin':
-                return redirect(url_for('index'))
-            else:
-                return redirect(url_for('view_transactions'))
-        else:
-            flash('Sai tên đăng nhập hoặc mật khẩu', 'error')
-    
+        if user and password == user[2]:
+            session['user_id'] = user[0]
+            session['username'] = user[1]
+            session['role'] = user[3]
+            session['employee_id'] = user[4]  # sẽ là None nếu là admin
+
+            return redirect(url_for('view_transactions'))
+
+        return "Sai tài khoản hoặc mật khẩu"
+
     return render_template('login.html')
+
+
 
 @app.route('/logout')
 def logout():
@@ -230,6 +231,7 @@ def add_data():
     return render_template('add_data.html', employees=employees)
 
 # Route cải thiện cho process_payroll
+# Route cải thiện cho process_payroll
 @app.route('/process_payroll', methods=['GET', 'POST'])
 @login_required
 def process_payroll():
@@ -237,38 +239,16 @@ def process_payroll():
         try:
             employee_id = int(request.form['employee_id'])
             month = request.form['month']
-            private_key_hex = request.form.get("private_key")
-
-            if not private_key_hex:
-                flash("Thiếu khóa riêng để ký giao dịch.", "error")
-                return redirect(url_for('process_payroll'))
-
-            # Tạo ví từ khóa riêng
-            wallet = Wallet(private_key_hex=private_key_hex)
 
             with payroll_transaction() as payroll:
                 transaction = payroll.process_payroll(employee_id, month)
 
-                # Tạo dữ liệu cần ký (chỉ lấy các trường đơn giản)
-                tx_data = {
-                    "employee_id": transaction["employee_id"],
-                    "month": transaction["month"],
-                    "base_salary": transaction["base_salary"],
-                    "overtime_salary": transaction["overtime_salary"],
-                    "kpi_bonus": transaction["kpi_bonus"],
-                    "total_salary": transaction["total_salary"]
-                }
+                # Không ký giao dịch nữa – gán mặc định
+                transaction["signature"] = "NO_SIGNATURE"
+                transaction["public_key"] = "NO_PUBLIC_KEY"
 
-                # Ký giao dịch
-                message = json.dumps(tx_data, sort_keys=True)
-                signature = wallet.sign(message)
-
-                # Gắn chữ ký và khóa công khai vào transaction
-                transaction["signature"] = signature
-                transaction["public_key"] = wallet.get_public_key_hex()
-
-                # payroll.blockchain.add_block([transaction])  # THÊM BLOCK mới chứa 1 transaction
-                payroll.blockchain.save_to_file()           # Lưu lại file blockchain.json
+                # Lưu blockchain ra file (block đã được tạo bên trong process_payroll)
+                payroll.blockchain.save_to_file()
 
                 return app.response_class(
                     response=json.dumps({
@@ -302,6 +282,7 @@ def process_payroll():
     return render_template('process_payroll.html', employees=employees)
 
 
+
 # Route cải thiện cho view_transactions
 @app.route('/view_transactions')
 @login_required
@@ -310,16 +291,19 @@ def view_transactions():
         payroll = get_payroll_system()
         transactions, errors = payroll.get_all_transactions()
 
-        # Lấy thông tin người dùng từ session
+        # Lấy thông tin từ session
         role = session.get('role')
         employee_id = session.get('employee_id')
 
-        # Nếu là nhân viên thì lọc transaction của riêng họ
-        if role != 'admin' and employee_id:
-            employee_id_str = str(employee_id)
-            transactions = [tx for tx in transactions if str(tx.get('employee_id')) == employee_id_str]
+        # Nếu là nhân viên (không phải admin) thì chỉ hiển thị giao dịch của họ
+        if role != 'admin':
+            if not employee_id:
+                return render_template('view_transactions.html', transactions=[
+                    {'error': 'Không tìm thấy thông tin nhân viên trong phiên đăng nhập.', 'raw_data': ''}
+                ])
+            transactions = [tx for tx in transactions if str(tx.get('employee_id')) == str(employee_id)]
 
-        # Format transactions để hiển thị
+        # Format các transaction
         formatted_transactions = []
         for tx in transactions:
             try:
@@ -339,29 +323,29 @@ def view_transactions():
                 }
                 formatted_transactions.append(formatted_tx)
             except Exception as e:
-                print(f"Error formatting transaction: {e}")
                 formatted_transactions.append({
-                    'error': f'Lỗi format transaction: {str(e)}',
+                    'error': f'Lỗi định dạng giao dịch: {str(e)}',
                     'raw_data': str(tx)[:100] + '...' if len(str(tx)) > 100 else str(tx)
                 })
 
-        # Thêm lỗi decode (chỉ admin mới cần thấy lỗi này)
+        # Chỉ admin mới xem được các lỗi
         if role == 'admin':
             for error in errors:
                 formatted_transactions.append({
-                    'error': f"Block {error['block_index']}: {error['error']}",
-                    'raw_data': error['raw_data']
+                    'error': f"Lỗi trong block {error.get('block_index', 'N/A')}: {error.get('error', 'Không xác định')}",
+                    'raw_data': error.get('raw_data', 'Không có')
                 })
 
         return render_template('view_transactions.html', transactions=formatted_transactions)
 
     except Exception as e:
-        print(f"Error in view_transactions: {e}")
         import traceback
         traceback.print_exc()
         return render_template('view_transactions.html', transactions=[
             {'error': f'Lỗi hệ thống: {str(e)}', 'raw_data': ''}
         ])
+
+
 
 
 # Route cải thiện cho chitietblockchain
