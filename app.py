@@ -158,34 +158,25 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        
-        user = auth_system.verify_user(username, password)
 
-        if user:
-            # Kiểm tra nếu tài khoản bị vô hiệu hóa
-            if not user.get('is_active', 1):
-                flash('Tài khoản của bạn đã bị vô hiệu hóa.', 'error')
-                return render_template('login.html')
+        conn = sqlite3.connect('payroll.db')
+        c = conn.cursor()
+        c.execute("SELECT id, username, password, role, employee_id FROM users WHERE username = ?", (username,))
+        user = c.fetchone()
+        conn.close()
 
-            # Gán session
-            session['user_id'] = user['id']
-            session['username'] = user['username']
-            session['role'] = user['role']
-            session['employee_id'] = user.get('employee_id')  # None nếu là admin
+        if user and password == user[2]:
+            session['user_id'] = user[0]
+            session['username'] = user[1]
+            session['role'] = user[3]
+            session['employee_id'] = user[4]  # sẽ là None nếu là admin
 
-            flash(f'Chào mừng {username}!', 'success')
+            return redirect(url_for('view_transactions'))
 
-            # Nếu là admin → về index (toàn quyền)
-            if user['role'] == 'admin':
-                return redirect(url_for('index'))
-            else:
-                # Là nhân viên → chỉ được xem view_transactions
-                return redirect(url_for('view_transactions'))
+        return "Sai tài khoản hoặc mật khẩu"
 
-        else:
-            flash('Sai tên đăng nhập hoặc mật khẩu', 'error')
-    
     return render_template('login.html')
+
 
 
 @app.route('/logout')
@@ -373,6 +364,7 @@ def view_transactions():
         return render_template('view_transactions.html', transactions=[
             {'error': f'Lỗi hệ thống: {str(e)}', 'raw_data': ''}
         ])
+
 
 
 
