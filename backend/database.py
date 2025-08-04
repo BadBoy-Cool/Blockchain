@@ -5,6 +5,8 @@ def init_db():
     conn = sqlite3.connect('payroll.db')
     c = conn.cursor()
 
+    c.execute('DROP TABLE IF EXISTS users')
+
     # Tạo bảng employees
     c.execute('''
         CREATE TABLE IF NOT EXISTS employees (
@@ -36,12 +38,12 @@ def init_db():
         )
     ''')
 
-    #Tạo bảng users
+    # Tạo bảng users (bỏ password, thêm public_key)
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY,
             username TEXT UNIQUE,
-            password TEXT,
+            public_key TEXT,
             role TEXT DEFAULT 'user',
             last_login TIMESTAMP,
             is_active BOOLEAN DEFAULT 1,
@@ -50,17 +52,17 @@ def init_db():
         )
     ''')
 
-    #Khởi tạo Crypto để sinh public key
+    # Khởi tạo Crypto để sinh public key
     crypto = CryptoUtils()
     public_key = crypto.get_public_key()
 
-    #Thêm nhân viên mẫu
+    # Thêm nhân viên mẫu
     c.execute('''
         INSERT OR IGNORE INTO employees (id, name, agreed_salary, public_key)
         VALUES (?, ?, ?, ?)
     ''', (1, "Nguyễn Văn A", 1000, public_key))
 
-    #Thêm dữ liệu chấm công và KPI
+    # Thêm dữ liệu chấm công và KPI
     c.execute('''
         INSERT OR IGNORE INTO attendance (employee_id, date, hours_worked, overtime_hours)
         VALUES (?, ?, ?, ?)
@@ -71,17 +73,17 @@ def init_db():
         VALUES (?, ?, ?)
     ''', (1, "2025-07-01", 85))
 
-    #Thêm tài khoản admin mặc định (không gắn với employee_id)
+    # Thêm tài khoản admin mặc định (không gắn với employee_id)
     c.execute('''
-        INSERT OR IGNORE INTO users (username, password, role)
+        INSERT OR IGNORE INTO users (username, public_key, role)
         VALUES (?, ?, ?)
-    ''', ('admin', 'admin123', 'admin'))
+    ''', ('admin', public_key, 'admin'))
 
-    #Thêm tài khoản user gắn với employee_id = 1
+    # Thêm tài khoản user gắn với employee_id = 1
     c.execute('''
-        INSERT OR IGNORE INTO users (username, password, role, employee_id)
+        INSERT OR IGNORE INTO users (username, public_key, role, employee_id)
         VALUES (?, ?, ?, ?)
-    ''', ('nv1', 'nvpass123', 'user', 1))
+    ''', ('nv1', public_key, 'user', 1))
 
     conn.commit()
     conn.close()

@@ -60,7 +60,7 @@ class PayrollSystem:
             kpi_bonus = self.smart_contract.calculate_kpi_bonus(kpi_score)
             total_salary = self.smart_contract.calculate_total_salary(base_salary, overtime_salary, kpi_bonus)
 
-            # Tạo transaction
+            # Tạo transaction (bỏ phần ký giao dịch)
             transaction = {
                 'employee_id': employee_id,
                 'employee_name': employee_name,
@@ -77,10 +77,6 @@ class PayrollSystem:
                 'timestamp': time.time(),
                 'processed_date': time.strftime('%Y-%m-%d %H:%M:%S')
             }
-
-            # Ký giao dịch
-            signature = self.crypto.sign_transaction(transaction)
-            transaction['signature'] = signature.hex()
 
             # Mã hóa transaction để lưu vào blockchain
             transaction_json = json.dumps(transaction, ensure_ascii=False)
@@ -141,22 +137,11 @@ class PayrollSystem:
             return []
 
     def verify_transaction(self, transaction_data):
-        """Xác minh tính hợp lệ của transaction"""
+        """Xác minh tính hợp lệ của transaction (bỏ xác minh chữ ký)"""
         try:
-            # Tách signature ra khỏi transaction
-            signature_hex = transaction_data.get('signature')
-            if not signature_hex:
-                return False
-            
-            transaction_copy = transaction_data.copy()
-            del transaction_copy['signature']
-            
-            # Tạo hash của transaction
-            transaction_json = json.dumps(transaction_copy, sort_keys=True)
-            
-            # TODO: Implement signature verification với public key
-            # Hiện tại chỉ kiểm tra cơ bản
-            return len(signature_hex) > 0
+            # Kiểm tra các trường bắt buộc
+            required_fields = ['employee_id', 'month', 'total_salary', 'timestamp']
+            return all(field in transaction_data for field in required_fields)
             
         except Exception as e:
             print(f"Error verifying transaction: {e}")

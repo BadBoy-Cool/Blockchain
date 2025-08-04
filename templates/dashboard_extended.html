@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>🏠 Dashboard Mở Rộng</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .dashboard { max-width: 800px; margin: auto; }
+        .button { padding: 10px 20px; margin: 5px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        .button:hover { background-color: #45a049; }
+        .transaction { border: 1px solid #ddd; padding: 10px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <h1>🏠 Dashboard Mở Rộng</h1>
+        <p>Thời gian hiện tại: {{ current_time }}</p>
+        <h2>Chức năng mới</h2>
+        <form action="/international_payroll" method="POST">
+            <label>Thanh toán USDC</label><br>
+            <input type="number" name="employee_id" placeholder="ID Nhân viên" required>
+            <input type="text" name="month" placeholder="Tháng (YYYY-MM)" required>
+            <input type="number" name="amount_usdc" step="0.01" placeholder="Số tiền USDC" required>
+            <button type="submit" class="button">Thanh toán USDC</button>
+        </form>
+        <form action="/start_salary_stream" method="POST">
+            <label>Stream Lương</label><br>
+            <input type="number" name="employee_id" placeholder="ID Nhân viên" required>
+            <input type="text" name="month" placeholder="Tháng (YYYY-MM)" required>
+            <input type="number" name="amount_per_second" step="0.01" placeholder="USDC/giây" required>
+            <input type="number" name="duration_seconds" placeholder="Thời gian (giây)" required>
+            <button type="submit" class="button">Khởi tạo Stream</button>
+        </form>
+        <form action="/dao_vote" method="POST">
+            <label>Đề xuất DAO</label><br>
+            <input type="number" name="employee_id" placeholder="ID Nhân viên" required>
+            <input type="text" name="proposal_description" placeholder="Mô tả đề xuất" required>
+            <input type="number" name="fund_amount" step="0.01" placeholder="Số tiền quỹ" required>
+            <button type="submit" class="button">Tạo Đề xuất</button>
+        </form>
+        <form action="/fetch_kpi" method="POST">
+            <label>Lấy KPI từ Oracle</label><br>
+            <input type="number" name="employee_id" placeholder="ID Nhân viên" required>
+            <input type="text" name="month" placeholder="Tháng (YYYY-MM)" required>
+            <button type="submit" class="button">Lấy KPI</button>
+        </form>
+        <form action="/add_contract" method="POST">
+            <label>Thêm Hợp đồng</label><br>
+            <input type="number" name="employee_id" placeholder="ID Nhân viên" required>
+            <input type="text" name="contract_data" placeholder="Nội dung hợp đồng" required>
+            <input type="text" name="start_date" placeholder="Ngày bắt đầu (YYYY-MM-DD)" required>
+            <button type="submit" class="button">Thêm Hợp đồng</button>
+        </form>
+        <h2>Lịch sử Giao Dịch</h2>
+        {% if transactions %}
+            {% for tx_list in transactions %}
+                {% for tx in tx_list %}
+                <div class="transaction">
+                    <p>👤 Nhân viên #{{ tx.employee_id }}</p>
+                    {% if tx.amount_usdc %}
+                    <p>💵 USDC: {{ tx.amount_usdc }}</p>
+                    {% elif tx.amount_per_second %}
+                    <p>💸 Stream: {{ tx.amount_per_second }} USDC/giây, {{ tx.duration_seconds }} giây</p>
+                    {% elif tx.proposal_description %}
+                    <p>📜 DAO: {{ tx.proposal_description }} (Quỹ: ${{ "%.2f"|format(tx.fund_amount) }})</p>
+                    {% elif tx.kpi_score %}
+                    <p>🎯 KPI: {{ "%.1f"|format(tx.kpi_score) }}</p>
+                    {% elif tx.contract_data %}
+                    <p>📜 Hợp đồng: {{ tx.contract_data }} (Bắt đầu: {{ tx.start_date }})</p>
+                    {% else %}
+                    <p>💵 Lương: ${{ "%.2f"|format(tx.total_salary) }}</p>
+                    {% endif %}
+                    {% if tx.tx_hash %}
+                    <p>🔗 Tx Hash: {{ tx.tx_hash }}</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% endfor %}
+        {% else %}
+            <p>📭 Chưa có giao dịch nào</p>
+        {% endif %}
+        <a href="/dashboard">🏠 Về Dashboard Cũ</a>
+    </div>
+    <script>
+        document.getElementById('current_time').innerText = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+    </script>
+</body>
+</html>

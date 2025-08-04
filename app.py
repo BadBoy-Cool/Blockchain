@@ -4,6 +4,7 @@ import sqlite3
 import base64
 import datetime
 from datetime import datetime
+from backend.crypto_utils import verify_signature
 import atexit
 from contextlib import contextmanager
 import io
@@ -12,8 +13,10 @@ import os
 # Import backend modules
 from backend.database import init_db
 from backend.payroll_system import PayrollSystem
-from wallet import Wallet
-
+#from generate_keys import Wallet
+from backend.crypto_utils import CryptoUtils
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding
 
 app = Flask(__name__)
 app.secret_key = '123'
@@ -44,23 +47,57 @@ class AuthSystem:
                       is_active BOOLEAN DEFAULT 1)''')
         
         # Tạo tài khoản admin mặc định
-        c.execute("INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)",
-                  ('admin', 'admin123', 'admin'))
+        public_key = CryptoUtils.generate_rsa_key_pair(save_to=f"user_admin_keys.json")['public_key']
+
+        c.execute("INSERT OR IGNORE INTO users (username, public_key, role) VALUES (?, ?, ?)",
+                ("admin", public_key, "admin"))
+        
         conn.commit()
         conn.close()
     
-    def verify_user(self, username, password):
+    def verify_user(self, username, timestamp, signature):
         conn = sqlite3.connect('payroll.db')
         c = conn.cursor()
-        c.execute("SELECT id, username, role FROM users WHERE username = ? AND password = ? AND is_active = 1",
-                  (username, password))
-        user = c.fetchone()
+
+        c.execute("SELECT id, username, role, public_key, employee_id, is_active FROM users WHERE username = ?", (username,))
+        row = c.fetchone()
         conn.close()
-        
-        if user:
-            return {'id': user[0], 'username': user[1], 'role': user[2]}
+
+        if row and row[5] == 1:  # kiểm tra active
+            db_public_key = row[3]
+            message = f"{timestamp}:{username}"  # ✅ Sửa chỗ này
+
+            if verify_signature(db_public_key, message, signature):
+                return {
+                    'id': row[0],
+                    'username': row[1],
+                    'role': row[2],
+                    'employee_id': row[4]
+                }
+
         return None
-    
+
+        
+
+    def verify_signature(public_key_pem, message, signature_b64):
+        try:
+            public_key = serialization.load_pem_public_key(public_key_pem.encode())
+            public_key.verify(
+                base64.b64decode(signature_b64),
+                message.encode(),
+                padding.PSS(  # ✅ KHỚP VỚI sign_message.py
+                    mgf=padding.MGF1(hashes.SHA256()),
+                    salt_length=padding.PSS.MAX_LENGTH
+                ),
+                hashes.SHA256()
+            )
+            return True
+        except Exception as e:
+            print("⛔ Signature verification failed:", e)
+            return False
+
+      
+                   
     def get_all_users(self):
         conn = sqlite3.connect('payroll.db')
         c = conn.cursor()
@@ -153,27 +190,28 @@ def payroll_transaction():
 def index():
     return render_template('index.html')
 
-@app.route('/login', methods=['GET', 'POST']) 
+# Cập nhật route /login
+@app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form['username']
-        password = request.form['password']
+        timestamp = request.form['timestamp'] 
+        signature = request.form['signature']
 
-        conn = sqlite3.connect('payroll.db')
-        c = conn.cursor()
-        c.execute("SELECT id, username, password, role, employee_id FROM users WHERE username = ?", (username,))
-        user = c.fetchone()
-        conn.close()
+        auth_system = AuthSystem()
+        user = auth_system.verify_user(username, timestamp, signature)
 
-        if user and password == user[2]:
-            session['user_id'] = user[0]
-            session['username'] = user[1]
-            session['role'] = user[3]
-            session['employee_id'] = user[4]  # sẽ là None nếu là admin
-
+        if user:
+            session['user_id'] = user['id']
+            session['username'] = user['username']
+            session['role'] = user['role']
+            session['employee_id'] = user['employee_id']
+            print("[DEBUG] Đăng nhập:", session) 
+            flash('Đăng nhập thành công!', 'success')
             return redirect(url_for('view_transactions'))
 
-        return "Sai tài khoản hoặc mật khẩu"
+        flash('Đăng nhập thất bại. Vui lòng kiểm tra tên đăng nhập hoặc chữ ký.', 'error')
+        return redirect(url_for('login'))
 
     return render_template('login.html')
 
@@ -231,7 +269,6 @@ def add_data():
     return render_template('add_data.html', employees=employees)
 
 # Route cải thiện cho process_payroll
-# Route cải thiện cho process_payroll
 @app.route('/process_payroll', methods=['GET', 'POST'])
 @login_required
 def process_payroll():
@@ -242,10 +279,6 @@ def process_payroll():
 
             with payroll_transaction() as payroll:
                 transaction = payroll.process_payroll(employee_id, month)
-
-                # Không ký giao dịch nữa – gán mặc định
-                transaction["signature"] = "NO_SIGNATURE"
-                transaction["public_key"] = "NO_PUBLIC_KEY"
 
                 # Lưu blockchain ra file (block đã được tạo bên trong process_payroll)
                 payroll.blockchain.save_to_file()
@@ -508,15 +541,15 @@ def user_manager():
 def create_user():
     try:
         username = request.form['username']
-        password = request.form['password']
-        employee_id = request.form.get('employee_id')  # Đúng cú pháp
-        role = request.form.get('role', 'user')  # Mặc định là 'user' nếu không có trong form
+        public_key = request.form['public_key']
+        employee_id = request.form.get('employee_id') or None
+        role = request.form.get('role', 'user')
 
         conn = sqlite3.connect('payroll.db')
         c = conn.cursor()
         c.execute(
-            "INSERT INTO users (username, password, role, employee_id) VALUES (?, ?, ?, ?)",
-            (username, password, role, employee_id)
+            "INSERT INTO users (username, public_key, role, is_active, employee_id) VALUES (?, ?, ?, ?, ?)",
+            (username, public_key, role, 1, employee_id)
         )
         conn.commit()
         conn.close()

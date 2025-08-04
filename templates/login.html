@@ -3,48 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đăng nhập - Payroll System</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <title>🔐 Đăng Nhập</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+        .login-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .form-group button {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .form-group button:hover {
+            background-color: #0056b3;
+        }
+        .alert {
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+        }
+    </style>
 </head>
-<body class="bg-gradient-to-br from-blue-500 to-purple-600 min-h-screen">
-    <div class="container mx-auto flex items-center justify-center min-h-screen p-4">
-        <div class="bg-white p-8 rounded-lg shadow-2xl w-full max-w-md">
-            <h1 class="text-3xl font-bold text-center mb-6 text-gray-800">🔐 Đăng Nhập</h1>
-            
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="mb-4 p-3 rounded {% if category == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %}">
-                            {{ message }}
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-            
-            <form method="POST" class="space-y-4">
-                <div>
-                    <label class="block text-gray-700 font-medium mb-2">Tên đăng nhập</label>
-                    <input type="text" name="username" required 
-                           class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                
-                <div>
-                    <label class="block text-gray-700 font-medium mb-2">Mật khẩu</label>
-                    <input type="password" name="password" required 
-                           class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                
-                <button type="submit" 
-                        class="w-full bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600 transition duration-200 font-medium">
-                    Đăng nhập
-                </button>
-            </form>
-            
-            <!-- <div class="mt-4 text-center text-sm text-gray-600">
-                <p>Tài khoản mặc định:</p>
-                <p><strong>Username:</strong> admin | <strong>Password:</strong> admin123</p>
-            </div> -->
-        </div>
+<body>
+    <div class="login-container">
+        <h2>🔐 Đăng Nhập</h2>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <form method="POST" action="/login">
+            <div class="form-group">
+                <label for="username">Tên đăng nhập</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="timestamp">Thời gian (timestamp)</label>
+                <input type="text" id="timestamp" name="timestamp" required placeholder="Dán timestamp từ script">
+            </div>
+            <div class="form-group">
+                <label for="signature">Chữ ký (Signature)</label>
+                <textarea id="signature" name="signature" rows="4" required placeholder="Dán chữ ký hex từ script hoặc ví"></textarea>
+            </div>
+            <div class="form-group">
+                <button type="submit">Đăng nhập</button>
+            </div>
+        </form>
     </div>
 </body>
 </html>

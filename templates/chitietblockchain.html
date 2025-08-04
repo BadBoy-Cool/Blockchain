@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chi Tiết Blockchain</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>🔗 Chi Tiết Blockchain</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
         .block-card {
@@ -14,164 +14,153 @@
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
         .block-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-4px);
             box-shadow: 0 20px 40px rgba(0,0,0,0.4);
         }
         .genesis-block {
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
         }
         .hash-display {
-            font-family: 'Courier New', monospace;
-            background: rgba(0,0,0,0.2);
-            padding: 8px;
-            border-radius: 8px;
-            word-break: break-all;
+            font-family: monospace;
+            background-color: rgba(0,0,0,0.2);
+            padding: 6px 10px;
+            border-radius: 6px;
             font-size: 12px;
+            word-break: break-word;
         }
         .transaction-item {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.15);
             border-radius: 8px;
             padding: 12px;
-            margin: 8px 0;
-            backdrop-filter: blur(10px);
-        }
-        .stats-card {
-            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-            color: #333;
+            margin-top: 8px;
         }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
-    <div class="container mx-auto p-6">
-        <!-- Header -->
-        {% if not chain_valid %}
-            <div class="bg-red-500 text-white p-4 rounded-lg mb-6 font-bold flex justify-between items-center">
-                Cảnh báo: Blockchain đã bị chỉnh sửa hoặc không hợp lệ!
-                <form action="/restore_blockchain" method="POST" class="ml-4">
-                    <button type="submit" class="bg-white text-red-600 font-semibold px-4 py-2 rounded hover:bg-red-100 transition">
-                        🔄 Khôi phục từ bản sao lưu
-                    </button>
-                </form>
-            </div>
-        {% endif %}
-        <div class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-800 mb-2">🔗 Chi Tiết Blockchain</h1>
-            <p class="text-gray-600">Khám phá cấu trúc và dữ liệu của blockchain hệ thống lương</p>
+<div class="container mx-auto p-6">
+
+    <!-- Cảnh báo nếu chuỗi bị chỉnh sửa -->
+    {% if not chain_valid %}
+        <div class="bg-red-500 text-white p-4 rounded-lg mb-6 font-semibold flex justify-between items-center">
+            ⚠️ Cảnh báo: Blockchain đã bị chỉnh sửa hoặc không hợp lệ!
+            <form action="{{ url_for('restore_blockchain') }}" method="POST">
+                <button class="bg-white text-red-600 px-4 py-2 rounded hover:bg-red-100 transition ml-4">
+                    🔄 Khôi phục từ bản sao lưu
+                </button>
+            </form>
         </div>
+    {% endif %}
 
-        <!-- Blockchain Stats -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div class="stats-card p-6 rounded-lg shadow-lg text-center">
-                <div class="text-3xl font-bold text-blue-600">{{ blockchain_stats.total_blocks }}</div>
-                <div class="text-sm text-gray-700">Tổng số Block</div>
-            </div>
-            <div class="stats-card p-6 rounded-lg shadow-lg text-center">
-                <div class="text-3xl font-bold text-green-600">{{ blockchain_stats.total_transactions }}</div>
-                <div class="text-sm text-gray-700">Tổng Giao Dịch</div>
-            </div>
-            <div class="stats-card p-6 rounded-lg shadow-lg text-center">
-                <div class="text-3xl font-bold text-purple-600">${{ "%.2f"|format(blockchain_stats.total_salary) }}</div>
-                <div class="text-sm text-gray-700">Tổng Lương Đã Chi</div>
-            </div>
-            <div class="stats-card p-6 rounded-lg shadow-lg text-center">
-                <div class="text-3xl font-bold text-orange-600">{{ blockchain_stats.chain_integrity }}</div>
-                <div class="text-sm text-gray-700">Tình Trạng Chuỗi</div>
-            </div>
+    <!-- Tiêu đề -->
+    <div class="text-center mb-10">
+        <h1 class="text-4xl font-bold text-gray-800">🔗 Chi Tiết Blockchain</h1>
+        <p class="text-gray-600">Xem chi tiết cấu trúc & dữ liệu trong chuỗi khối hệ thống lương</p>
+    </div>
+
+    <!-- Thống kê tổng quan -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+        <div class="bg-blue-100 text-center p-6 rounded-xl shadow">
+            <div class="text-3xl font-bold text-blue-600">{{ blockchain_stats.total_blocks }}</div>
+            <div class="text-gray-700 mt-2">Tổng Blocks</div>
         </div>
-
-        <!-- Blockchain Visualization -->
-        <div class="space-y-6">
-            {% for block in blocks %}
-            <div class="block-card {% if block.index == 0 %}genesis-block{% endif %} p-6">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <h2 class="text-2xl font-bold">
-                            {% if block.index == 0 %}
-                                🎯 Genesis Block
-                            {% else %}
-                                📦 Block #{{ block.index }}
-                            {% endif %}
-                        </h2>
-                        <p class="text-sm opacity-80">{{ block.timestamp_formatted }}</p>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-sm opacity-80">Giao dịch</div>
-                        <div class="text-xl font-bold">{{ block.transaction_count }}</div>
-                    </div>
-                </div>
-
-                <!-- Block Hash Info -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <div class="text-sm opacity-80 mb-1">Hash hiện tại:</div>
-                        <div class="hash-display">{{ block.hash }}</div>
-                    </div>
-                    <div>
-                        <div class="text-sm opacity-80 mb-1">Hash block trước:</div>
-                        <div class="hash-display">{{ block.previous_hash }}</div>
-                    </div>
-                </div>
-
-                <!-- Transactions -->
-                {% if block.transactions %}
-                <div class="mb-4">
-                    <h3 class="text-lg font-semibold mb-2">💰 Giao Dịch Trong Block:</h3>
-                    {% for tx in block.transactions %}
-                    <div class="transaction-item">
-                        {% if tx.error %}
-                            <div class="text-red-300">
-                                <strong>❌ Lỗi:</strong> {{ tx.error }}
-                            </div>
-                        {% else %}
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 text-sm">
-                                <div><strong>👤 NV:</strong> {{ tx.employee_id }}</div>
-                                <div><strong>📅 Tháng:</strong> {{ tx.month }}</div>
-                                <div><strong>💵 Lương CB:</strong> ${{ "%.2f"|format(tx.base_salary) }}</div>
-                                <div><strong>💰 Tổng:</strong> ${{ "%.2f"|format(tx.total_salary) }}</div>
-                            </div>
-                            <div class="mt-2 text-xs opacity-70">
-                                <strong>🔐 Chữ ký:</strong> {{ tx.signature[:50] }}...
-                            </div>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-
-                <!-- Block Validation Status -->
-                <div class="flex justify-between items-center pt-4 border-t border-white border-opacity-20">
-                    <div class="flex items-center space-x-4">
-                        <span class="text-sm">
-                            {% if block.is_valid %}
-                                ✅ Block hợp lệ
-                            {% else %}
-                                ❌ Block không hợp lệ
-                            {% endif %}
-                        </span>
-                        {% if block.index > 0 %}
-                        <span class="text-sm">
-                            {% if block.chain_valid %}
-                                🔗 Chuỗi liên kết đúng
-                            {% else %}
-                                ⚠️ Chuỗi bị ngắt
-                            {% endif %}
-                        </span>
-                        {% endif %}
-                    </div>
-                    <div class="text-xs opacity-70">
-                        Kích thước: {{ block.size_bytes }} bytes
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
+        <div class="bg-green-100 text-center p-6 rounded-xl shadow">
+            <div class="text-3xl font-bold text-green-600">{{ blockchain_stats.total_transactions }}</div>
+            <div class="text-gray-700 mt-2">Tổng Giao Dịch</div>
         </div>
-
-        <!-- Navigation -->
-        <div class="text-center mt-8">
-            <a href="/" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg shadow-lg transition-colors">
-                🏠 Quay về Dashboard
-            </a>
+        <div class="bg-purple-100 text-center p-6 rounded-xl shadow">
+            <div class="text-3xl font-bold text-purple-600">${{ "%.2f"|format(blockchain_stats.total_salary) }}</div>
+            <div class="text-gray-700 mt-2">Tổng Lương Đã Chi</div>
+        </div>
+        <div class="bg-yellow-100 text-center p-6 rounded-xl shadow">
+            <div class="text-3xl font-bold text-yellow-600">{{ blockchain_stats.chain_integrity }}</div>
+            <div class="text-gray-700 mt-2">Trạng Thái Chuỗi</div>
         </div>
     </div>
+
+    <!-- Danh sách block -->
+    <div class="space-y-6">
+        {% for block in blocks %}
+        <div class="block-card {% if block.index == 0 %}genesis-block{% endif %} p-6">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h2 class="text-2xl font-bold">
+                        {% if block.index == 0 %}
+                            🎯 Genesis Block
+                        {% else %}
+                            📦 Block #{{ block.index }}
+                        {% endif %}
+                    </h2>
+                    <p class="text-sm opacity-80">{{ block.timestamp_formatted }}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm opacity-80">Giao dịch:</p>
+                    <p class="text-xl font-bold">{{ block.transaction_count }}</p>
+                </div>
+            </div>
+
+            <!-- Hash -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <div class="text-sm opacity-80 mb-1">🔗 Hash hiện tại:</div>
+                    <div class="hash-display">{{ block.hash }}</div>
+                </div>
+                <div>
+                    <div class="text-sm opacity-80 mb-1">⏮️ Hash trước:</div>
+                    <div class="hash-display">{{ block.previous_hash }}</div>
+                </div>
+            </div>
+
+            <!-- Danh sách giao dịch -->
+            {% if block.transactions %}
+            <div class="mb-4">
+                <h3 class="text-lg font-semibold mb-2">💰 Giao Dịch Trong Block:</h3>
+                {% for tx in block.transactions %}
+                <div class="transaction-item">
+                    {% if tx.error %}
+                        <div class="text-red-200 text-sm">
+                            ❌ <strong>Lỗi:</strong> {{ tx.error }}
+                        </div>
+                    {% else %}
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 text-sm">
+                            <div><strong>👤 Nhân viên:</strong> {{ tx.employee_id }}</div>
+                            <div><strong>📅 Tháng:</strong> {{ tx.month }}</div>
+                            <div><strong>💵 Lương CB:</strong> ${{ "%.2f"|format(tx.base_salary) }}</div>
+                            <div><strong>💰 Tổng:</strong> ${{ "%.2f"|format(tx.total_salary) }}</div>
+                        </div>
+                        {% if tx.signature %}
+                        <div class="mt-2 text-xs opacity-70">
+                            <strong>🔐 Chữ ký:</strong> {{ tx.signature[:60] }}...
+                        </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Trạng thái block -->
+            <div class="flex justify-between items-center pt-4 border-t border-white border-opacity-20 text-sm">
+                <div class="space-x-4">
+                    <span>{% if block.is_valid %}✅ Block hợp lệ{% else %}❌ Block lỗi{% endif %}</span>
+                    {% if block.index > 0 %}
+                        <span>{% if block.chain_valid %}🔗 Chuỗi đúng{% else %}⚠️ Chuỗi sai{% endif %}</span>
+                    {% endif %}
+                </div>
+                <div class="text-xs opacity-70">
+                    Kích thước: {{ block.size_bytes }} bytes
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Nút trở về -->
+    <div class="text-center mt-10">
+        <a href="{{ url_for('index') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg shadow transition">
+            🏠 Quay về Dashboard
+        </a>
+    </div>
+
+</div>
 </body>
 </html>
