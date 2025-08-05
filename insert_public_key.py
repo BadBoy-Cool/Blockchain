@@ -36,7 +36,7 @@ def insert_public_key_to_db(username):
     conn.close()
 
 # Danh sách các user cần xử lý
-usernames = ["admin", "duyen", "bao", "son"]
+usernames = ["admin", "duyen", "bao", "son","linh"]
 
 #Chạy vòng lặp
 for username in usernames:

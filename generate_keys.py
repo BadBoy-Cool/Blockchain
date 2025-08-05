@@ -31,7 +31,7 @@ def generate_rsa_keys(username):
     print(f"✅ Đã tạo khóa cho user '{username}', lưu tại: {filename}")
 
 # Tạo khóa cho nhiều user ở đây
-usernames = ["admin", "duyen", "bao", "son"]  # <--- thêm tên user mới vào đây
+usernames = ["admin", "duyen", "bao", "son", "linh"]  # <--- thêm tên user mới vào đây
 for username in usernames:
     generate_rsa_keys(username)
 
