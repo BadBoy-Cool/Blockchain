@@ -1,3 +1,4 @@
+import traceback
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash, send_file
 import json
 import sqlite3
@@ -9,6 +10,8 @@ import atexit
 from contextlib import contextmanager
 import io
 import os
+import time
+import subprocess
 
 # Import backend modules
 from backend.database import init_db
@@ -220,6 +223,63 @@ def login():
 
 
 
+@app.route('/api/sign', methods=['POST'])
+def api_sign():
+    uploaded_file = request.files.get('jsonFile')
+    username = request.form.get('username')
+
+    if not uploaded_file or not username:
+        return jsonify({'error': 'Thiếu file hoặc username'}), 400
+
+    try:
+        keys = json.load(uploaded_file)
+        private_pem = keys.get('private_key')
+
+        if not private_pem:
+            return jsonify({'error': 'Không tìm thấy private_key trong JSON'}), 400
+
+        private_key = serialization.load_pem_private_key(
+            private_pem.encode(),
+            password=None,
+        )
+
+        timestamp = int(time.time())
+        message = f"{timestamp}:{username}".encode()
+
+        signature = private_key.sign(
+            message,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+
+        signature_b64 = base64.b64encode(signature).decode()
+
+        return jsonify({
+            'username': username,
+            'timestamp': timestamp,
+            'signature': signature_b64
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+
+@app.route('/run_script', methods=['POST'])
+def run_script():
+    try:
+        # Thay 'your_script.sh' thành đường dẫn file shell bạn muốn chạy
+        result = subprocess.run(['bash', 'login.sh'], capture_output=True, text=True, timeout=10)
+        if result.returncode != 0:
+            return jsonify({'success': False, 'error': result.stderr})
+
+        return jsonify({'success': True, 'output': result.stdout})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+    
+    
 @app.route('/logout')
 def logout():
     session.clear()
