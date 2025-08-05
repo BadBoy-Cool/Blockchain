@@ -6,6 +6,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.ciphers.algorithms import AES
 
 class CryptoUtils:
     def __init__(self):
@@ -47,7 +48,13 @@ class CryptoUtils:
         with open(self.key_file, 'w') as f:
             json.dump(data, f)
 
-
+    def pkcs7_pad(self, data: bytes) -> bytes:
+        """Thêm padding để data dài đúng block size (AES = 16 bytes)"""
+        block_size = algorithms.AES.block_size  
+        padding_length = block_size - (len(data) % block_size)
+        padding = bytes([padding_length] * padding_length)
+        return data + padding
+    
     def sign_login_message(self, username, timestamp=None):
         if timestamp is None:
             from time import time
@@ -80,7 +87,7 @@ class CryptoUtils:
             decrypted_padded = decryptor.update(encrypted_data) + decryptor.finalize()
 
             # Loại bỏ padding
-            decrypted_data = self._pkcs7_unpad(decrypted_padded)
+            decrypted_data = self.pkcs7_unpad(decrypted_padded)
 
             # Trả về string
             return decrypted_data.decode('utf-8')
@@ -102,7 +109,7 @@ class CryptoUtils:
                 data_bytes = data
 
             # Áp dụng PKCS7 padding
-            padded_data = self._pkcs7_pad(data_bytes)
+            padded_data = self.pkcs7_pad(data_bytes)
 
             # Mã hóa
             encrypted = encryptor.update(padded_data) + encryptor.finalize()
@@ -113,7 +120,7 @@ class CryptoUtils:
             raise Exception("❌ Mã hóa thất bại: " + str(e))
 
 
-    def _pkcs7_unpad(self, data):
+    def pkcs7_unpad(self, data):
         padding_length = data[-1]
         return data[:-padding_length]
 
