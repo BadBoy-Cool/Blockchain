@@ -463,26 +463,79 @@ def convert_currency(value, currency='USD'):
     return value * rate
 
 
+# # Route cải thiện cho chitietblockchain
+# @app.route("/chitietblockchain")
+# @login_required
+# def chitietblockchain():
+#     payroll = get_payroll_system()
+#     blockchain = payroll.blockchain
+#     currency = request.args.get('currency', 'USD')
+#     form = DummyForm()
+
+#     # Ví dụ dữ liệu — bạn thay bằng dữ liệu thực tế của mình
+#     blockchain_stats = {
+#         'total_blocks': 5,
+#         'total_transactions': 20,
+#         'total_salary': 50000.0,
+#         'chain_integrity': '✅ Hợp lệ'
+#     }
+#     chain_valid = blockchain.validate_chain()  # kiểm tra lại sau restore
+
+#     blocks = []
+#     total_transactions = 0
+#     total_salary = 0
+
+#     for block in blockchain.chain:
+#         # có thể xử lý và format dữ liệu ở đây
+#         block_data = {
+#             "index": block.index,
+#             "transaction_count": len(block.transactions),
+#             "transactions": [],
+#             "hash": block.hash,
+#             "previous_hash": block.previous_hash,
+#             "is_valid": block.is_valid,
+#             "chain_valid": True,
+#             "size_bytes": len(json.dumps(block.to_dict()).encode("utf-8"))
+#         }
+
+#         if block.index > 0:
+#             prev_block = blockchain.chain[block.index - 1]
+#             if block.previous_hash != prev_block.hash:
+#                 block_data["chain_valid"] = False
+
+#         for tx in block.transactions:
+#             try:
+#                 tx_dict = blockchain._decode_transaction(tx)
+#                 if tx_dict:
+#                     block_data["transactions"].append(tx_dict)
+#                     total_transactions += 1
+#                     total_salary += tx_dict.get("total_salary", 0)
+#             except Exception as e:
+#                 block_data["transactions"].append(None)
+
+
+#         blocks.append(block_data)
+
+#     blockchain_stats = {
+#         "total_blocks": len(blockchain.chain),
+#         "total_transactions": total_transactions,
+#         "total_salary": total_salary,
+#         "chain_integrity": "Hợp lệ" if chain_valid else "Không hợp lệ"
+#     }
+
+#     return render_template("chitietblockchain.html", blocks=blocks,currency=currency,currency_symbol=currency_symbols.get(currency, '$'),convert_currency=lambda x: convert_currency(x, currency),blockchain_stats=blockchain_stats, chain_valid=chain_valid,form=form)
+
+
 # Route cải thiện cho chitietblockchain
 @app.route("/chitietblockchain")
 @login_required
 def chitietblockchain():
     payroll = get_payroll_system()
     blockchain = payroll.blockchain
-    currency = request.args.get('currency', 'USD')
-
-    # Ví dụ dữ liệu — bạn thay bằng dữ liệu thực tế của mình
-    blockchain_stats = {
-        'total_blocks': 5,
-        'total_transactions': 20,
-        'total_salary': 50000.0,
-        'chain_integrity': '✅ Hợp lệ'
-    }
-
-
-
+    
     chain_valid = blockchain.validate_chain()  # kiểm tra lại sau restore
-
+    currency = request.args.get('currency', 'USD')
+    
     blocks = []
     total_transactions = 0
     total_salary = 0
@@ -503,22 +556,17 @@ def chitietblockchain():
         if block.index > 0:
             prev_block = blockchain.chain[block.index - 1]
             if block.previous_hash != prev_block.hash:
-                block_data["chain_valid"] = False
+                block_data["chain_valid"] = False    
 
         for tx in block.transactions:
             try:
-                tx_dict = blockchain._decode_transaction(tx)
-                block_data["transactions"].append(tx_dict)
-
-                # cộng lương để thống kê
-                total_transactions += 1
-                total_salary += tx_dict.get("total_salary", 0)
-
+                 tx_dict = blockchain._decode_transaction(tx)
+                 if tx_dict:
+                    block_data["transactions"].append(tx_dict)
+                    total_transactions += 1
+                    total_salary += tx_dict.get("total_salary", 0)
             except Exception as e:
-                block_data["transactions"].append({
-                    "error": str(e),
-                    "raw_data": tx
-                })
+                 block_data["transactions"].append(None)
 
         blocks.append(block_data)
 
@@ -530,7 +578,6 @@ def chitietblockchain():
     }
 
     return render_template("chitietblockchain.html", blocks=blocks,currency=currency,currency_symbol=currency_symbols.get(currency, '$'),convert_currency=lambda x: convert_currency(x, currency),blockchain_stats=blockchain_stats, chain_valid=chain_valid)
-
 
 # Route mới để kiểm tra trạng thái blockchain
 @app.route('/blockchain_status')

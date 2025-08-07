@@ -222,22 +222,27 @@ class Blockchain:
     def validate_chain(self):
         """Validate toàn bộ blockchain"""
         try:
+            if not self.chain[0].validate_block():
+                print("Genesis block is invalid")
+                return False
+
             for i in range(1, len(self.chain)):
                 current_block = self.chain[i]
-                previous_block = self.chain[i-1]
-                
+                previous_block = self.chain[i - 1]
+
                 if not current_block.validate_block():
                     print(f"Block {i} has invalid hash")
                     return False
-                    
+
                 if current_block.previous_hash != previous_block.hash:
-                    print(f"Block {i} has invalid previous hash")
+                    print(f"Block {i} has invalid previous hash: {current_block.previous_hash} != {previous_block.hash}")
                     return False
-                    
+
             return True
         except Exception as e:
             print(f"Error validating chain: {e}")
             return False
+
 
     def add_transaction(self, transaction):
         """Thêm transaction vào pending list"""
