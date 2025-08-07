@@ -328,12 +328,17 @@ def view_transactions():
         role = session.get('role')
         employee_id = session.get('employee_id')
 
-        # Nếu là nhân viên (không phải admin) thì chỉ hiển thị giao dịch của họ
         if role != 'admin':
+            if 'employee_id' not in session:
+                return render_template('view_transactions.html', transactions=[{
+                    'error': f'❌ Session không có employee_id cho người dùng {session.get("username", "Không rõ")}',
+                    'raw_data': str(session)
+                }])
             if not employee_id:
-                return render_template('view_transactions.html', transactions=[
-                    {'error': 'Không tìm thấy thông tin nhân viên trong phiên đăng nhập.', 'raw_data': ''}
-                ])
+                return render_template('view_transactions.html', transactions=[{
+                    'error': f'❌ Tài khoản nhân viên {session.get("username", "Không rõ")} không có employee_id hợp lệ.',
+                    'raw_data': str(session)
+                }])
             transactions = [tx for tx in transactions if str(tx.get('employee_id')) == str(employee_id)]
 
         # Format các transaction
