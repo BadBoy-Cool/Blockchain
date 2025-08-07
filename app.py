@@ -72,7 +72,7 @@ class AuthSystem:
                     'id': row[0],
                     'username': row[1],
                     'role': row[2],
-                    'employee_id': row[4]
+                    'employee_id': row[3]
                 }
 
         return None
@@ -208,7 +208,10 @@ def login():
             session['employee_id'] = user['employee_id']
             print("[DEBUG] Đăng nhập:", session) 
             flash('Đăng nhập thành công!', 'success')
-            return redirect(url_for('view_transactions'))
+            if user['role'] == 'admin':
+                return redirect(url_for('index'))
+            else:
+                return redirect(url_for('view_transactions'))
 
         flash('Đăng nhập thất bại. Vui lòng kiểm tra tên đăng nhập hoặc chữ ký.', 'error')
         return redirect(url_for('login'))

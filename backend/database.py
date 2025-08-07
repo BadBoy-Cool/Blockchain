@@ -54,34 +54,5 @@ def init_db():
     crypto = CryptoUtils()
     public_key = crypto.get_public_key()
 
-    # Thêm nhân viên mẫu
-    c.execute('''
-        INSERT OR IGNORE INTO employees (id, name, agreed_salary, public_key)
-        VALUES (?, ?, ?, ?)
-    ''', (1, "Nguyễn Văn A", 1000, public_key))
-
-    # Thêm dữ liệu chấm công và KPI
-    c.execute('''
-        INSERT OR IGNORE INTO attendance (employee_id, date, hours_worked, overtime_hours)
-        VALUES (?, ?, ?, ?)
-    ''', (1, "2025-07-01", 160, 10))
-
-    c.execute('''
-        INSERT OR IGNORE INTO kpi (employee_id, date, kpi_score)
-        VALUES (?, ?, ?)
-    ''', (1, "2025-07-01", 85))
-
-    # Thêm tài khoản admin mặc định (không gắn với employee_id)
-    c.execute('''
-        INSERT OR IGNORE INTO users (username, public_key, role)
-        VALUES (?, ?, ?)
-    ''', ('admin', public_key, 'admin'))
-
-    # Thêm tài khoản user gắn với employee_id = 1
-    c.execute('''
-        INSERT OR IGNORE INTO users (username, public_key, role, employee_id)
-        VALUES (?, ?, ?, ?)
-    ''', ('nv1', public_key, 'user', 1))
-
     conn.commit()
     conn.close()
