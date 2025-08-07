@@ -443,6 +443,24 @@ def view_transactions():
         ])
 
 
+# Tỉ giá đơn giản (bạn có thể lấy từ API sau nếu muốn)
+currency_rates = {
+    'USD': 1.0,
+    'VND': 24000.0,
+    'EUR': 0.85,
+    'JPY': 110.0,
+}
+
+currency_symbols = {
+    'USD': '$',
+    'VND': '₫',
+    'EUR': '€',
+    'JPY': '¥',
+}
+
+def convert_currency(value, currency='USD'):
+    rate = currency_rates.get(currency, 1.0)
+    return value * rate
 
 
 # Route cải thiện cho chitietblockchain
@@ -451,6 +469,17 @@ def view_transactions():
 def chitietblockchain():
     payroll = get_payroll_system()
     blockchain = payroll.blockchain
+    currency = request.args.get('currency', 'USD')
+
+    # Ví dụ dữ liệu — bạn thay bằng dữ liệu thực tế của mình
+    blockchain_stats = {
+        'total_blocks': 5,
+        'total_transactions': 20,
+        'total_salary': 50000.0,
+        'chain_integrity': '✅ Hợp lệ'
+    }
+
+
 
     chain_valid = blockchain.validate_chain()  # kiểm tra lại sau restore
 
@@ -500,7 +529,7 @@ def chitietblockchain():
         "chain_integrity": "Hợp lệ" if chain_valid else "Không hợp lệ"
     }
 
-    return render_template("chitietblockchain.html", blocks=blocks, blockchain_stats=blockchain_stats, chain_valid=chain_valid)
+    return render_template("chitietblockchain.html", blocks=blocks,currency=currency,currency_symbol=currency_symbols.get(currency, '$'),convert_currency=lambda x: convert_currency(x, currency),blockchain_stats=blockchain_stats, chain_valid=chain_valid)
 
 
 # Route mới để kiểm tra trạng thái blockchain
