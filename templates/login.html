@@ -108,17 +108,11 @@
                 </div>
             </div>
 
-            <!-- Đăng nhập bằng file JSON
-            <div id="json-field" style="display: none;"></div>
-            <div class="form-group">
-                <label for="autoLoginFile">Tự động đăng nhập bằng file JSON</label>
-                <input type="file" id="autoLoginFile" accept=".json">
-            </div> -->
                         <!-- Đăng nhập bằng file JSON -->
             <div id="json-field" style="display: none;">
                 <div class="form-group">
                 <label for="autoLoginFile">Tự động đăng nhập bằng file JSON</label>
-                <input type="file" id="autoLoginFile" accept=".json">
+                <input type="file" id="autoLoginFile" name="autoLoginFile" accept=".json">
                 </div>
             </div>
 
@@ -126,29 +120,23 @@
                 <button type="submit">Đăng nhập</button>
             </div>
         </form>
-    </div>
-
     <script>
-document.querySelector('form').addEventListener('submit', async function(event) {
-    const method = document.getElementById('loginMethod').value;
-    if (method === 'json') {
-        event.preventDefault(); // Ngăn submit mặc định
-
-        // Gửi yêu cầu chạy file shell trước
-        try {
-            const response = await fetch('/run_script', { method: 'POST' });
-            const data = await response.json();
-            if (data.success) {
-                this.submit(); // Sau khi chạy xong, submit form
-            } else {
-                alert('Chạy script lỗi: ' + data.error);
-            }
-        } catch (e) {
-            alert('Lỗi khi gọi server');
-            console.error(e);
+    document.getElementById('loginMethod').addEventListener('change', function() {
+        if (this.value === 'json') {
+            // Khi chọn JSON, tự động gọi script server
+            fetch('/run_script', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        alert('Chạy script lỗi: ' + data.error);
+                    }
+                })
+                .catch(e => {
+                    alert('Lỗi khi gọi server');
+                    console.error(e);
+                });
         }
-    }
-});
+    });
 
 
 document.getElementById('autoLoginFile').addEventListener('change', async function(event) {

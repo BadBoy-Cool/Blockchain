@@ -270,14 +270,15 @@ def api_sign():
 @app.route('/run_script', methods=['POST'])
 def run_script():
     try:
-        # Thay 'your_script.sh' thành đường dẫn file shell bạn muốn chạy
-        result = subprocess.run(['bash', 'login.sh'], capture_output=True, text=True, timeout=10)
-        if result.returncode != 0:
-            return jsonify({'success': False, 'error': result.stderr})
+        # Cách khác: dùng os.system (không lấy được output, chỉ trả về exit code)
+        exit_code = os.system('login.bat')
+        if exit_code != 0:
+            return jsonify({'success': False, 'error': f'Exit code: {exit_code}'}), 500
 
-        return jsonify({'success': True, 'output': result.stdout})
+        # Nếu cần lấy output, dùng subprocess như trước là tốt nhất
+        return jsonify({'success': True, 'output': f'Batch file executed, exit code: {exit_code}'})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({'success': False, 'error': str(e)}), 500
     
     
 @app.route('/logout')
