@@ -670,37 +670,13 @@ def deactivate_user():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-
-
-from flask import request, render_template
-from backend.report_generator import ReportGenerator
-
-currency_rates = {
-    'USD': 1.0,
-    'VND': 24000.0,
-    'EUR': 0.85,
-    'JPY': 110.0,
-}
-
-currency_symbols = {
-    'USD': '$',
-    'VND': '₫',
-    'EUR': '€',
-    'JPY': '¥',
-}
-
-def convert_currency(value, currency='USD'):
-    """Chuyển đổi giá trị tiền tệ dựa trên tỷ giá"""
-    return value * currency_rates.get(currency, 1.0)
-
 # Thay thế phần route @app.route('/reports') trong app.py
 @app.route('/reports')
 @login_required
 def reports():
-    currency = request.args.get('currency', 'USD')
-
     try:
         # Sử dụng ReportGenerator để lấy thống kê
+        from backend.report_generator import ReportGenerator
         report_gen = ReportGenerator()
         stats = report_gen.get_salary_statistics()
         

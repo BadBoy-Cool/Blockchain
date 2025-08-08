@@ -238,8 +238,6 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Page loaded, stats:', {{ stats|tojsonfilter|safe }});
         });
-        function exportPDF() { window.open('/export/pdf?currency={{ currency }}', '_blank'); }
-        function exportExcel() { window.open('/export/excel?currency={{ currency }}', '_blank'); }
     </script>
 </body>
 </html>

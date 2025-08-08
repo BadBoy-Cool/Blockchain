@@ -670,37 +670,13 @@ def deactivate_user():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-
-
-from flask import request, render_template
-from backend.report_generator import ReportGenerator
-
-currency_rates = {
-    'USD': 1.0,
-    'VND': 24000.0,
-    'EUR': 0.85,
-    'JPY': 110.0,
-}
-
-currency_symbols = {
-    'USD': '$',
-    'VND': '₫',
-    'EUR': '€',
-    'JPY': '¥',
-}
-
-def convert_currency(value, currency='USD'):
-    """Chuyển đổi giá trị tiền tệ dựa trên tỷ giá"""
-    return value * currency_rates.get(currency, 1.0)
-
 # Thay thế phần route @app.route('/reports') trong app.py
 @app.route('/reports')
 @login_required
 def reports():
-    currency = request.args.get('currency', 'USD')
-
     try:
         # Sử dụng ReportGenerator để lấy thống kê
+        from backend.report_generator import ReportGenerator
         report_gen = ReportGenerator()
         stats = report_gen.get_salary_statistics()
         
@@ -714,11 +690,13 @@ def reports():
             'blockchain_valid': blockchain_stats.get('chain_valid', False)
         })
         
-        print(f"[DEBUG] Stats: {stats}")
-        print(f"[DEBUG] Monthly stats: {monthly_stats}")
+        print(f"Debug - Stats: {stats}")  # Debug line
+        print(f"Debug - Monthly stats: {monthly_stats}")  # Debug line
+        
+        return render_template('reports.html', stats=stats, monthly_stats=monthly_stats)
         
     except Exception as e:
-        print(f"[ERROR] Lỗi khi tạo báo cáo: {e}")
+        print(f"Error in reports: {e}")
         import traceback
         traceback.print_exc()
         

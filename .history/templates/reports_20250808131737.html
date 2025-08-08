@@ -136,7 +136,7 @@
     
     <script>
         // Dữ liệu từ server
-        const currencySymbol = "{{ currency_symbol }}";
+                const currencySymbol = "{{ currency_symbol }}";
         const monthlyData = {{ monthly_stats|tojsonfilter|safe }};
         console.log('Monthly data:', monthlyData);
         
@@ -151,7 +151,7 @@
                 data: {
                     labels: salaryLabels,
                     datasets: [{
-                        label: `Tổng lương (${currencySymbol})`,
+                        label: 'Tổng lương (USD)',
                         data: salaryValues,
                         borderColor: 'rgb(59, 130, 246)',
                         backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -172,7 +172,7 @@
                             beginAtZero: true,
                             ticks: {
                                 callback: function(value) {
-                                    return currencySymbol + value.toFixed(2);
+                                    return '$' + value.toFixed(2);
                                 }
                             }
                         }
@@ -238,8 +238,6 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Page loaded, stats:', {{ stats|tojsonfilter|safe }});
         });
-        function exportPDF() { window.open('/export/pdf?currency={{ currency }}', '_blank'); }
-        function exportExcel() { window.open('/export/excel?currency={{ currency }}', '_blank'); }
     </script>
 </body>
 </html>
