@@ -714,36 +714,56 @@ def deactivate_user():
 
 # Thay thế phần route @app.route('/reports') trong app.py
 
+from flask import request, render_template
+from backend.report_generator import ReportGenerator
+
+currency_rates = {
+    'USD': 1.0,
+    'VND': 24000.0,
+    'EUR': 0.85,
+    'JPY': 110.0,
+}
+
+currency_symbols = {
+    'USD': '$',
+    'VND': '₫',
+    'EUR': '€',
+    'JPY': '¥',
+}
+
+def convert_currency(value, currency='USD'):
+    """Chuyển đổi giá trị tiền tệ dựa trên tỷ giá"""
+    return value * currency_rates.get(currency, 1.0)
+
 @app.route('/reports')
 @login_required
 def reports():
+    # Lấy loại tiền tệ từ query string, mặc định là USD
+    currency = request.args.get('currency', 'USD')
+
     try:
-        # Sử dụng ReportGenerator để lấy thống kê
-        from backend.report_generator import ReportGenerator
         report_gen = ReportGenerator()
         stats = report_gen.get_salary_statistics()
-        
+
         # Lấy thống kê từ blockchain
         blockchain_stats = payroll_system.blockchain.get_blockchain_stats()
         monthly_stats = payroll_system.blockchain.get_transaction_volume_by_month()
-        
-        # Cập nhật stats với thông tin blockchain
+
+        # Thêm dữ liệu blockchain vào thống kê
         stats.update({
             'blockchain_blocks': blockchain_stats.get('total_blocks', 0),
             'blockchain_valid': blockchain_stats.get('chain_valid', False)
         })
-        
-        print(f"Debug - Stats: {stats}")  # Debug line
-        print(f"Debug - Monthly stats: {monthly_stats}")  # Debug line
-        
-        return render_template('reports.html', stats=stats, monthly_stats=monthly_stats)
-        
+
+        print(f"[DEBUG] Stats: {stats}")
+        print(f"[DEBUG] Monthly stats: {monthly_stats}")
+
     except Exception as e:
-        print(f"Error in reports: {e}")
+        print(f"[ERROR] Lỗi khi tạo báo cáo: {e}")
         import traceback
         traceback.print_exc()
-        
-        # Fallback với dữ liệu mặc định
+
+        # Dữ liệu mặc định khi lỗi
         stats = {
             'total_salary': 0,
             'total_employees': 0,
@@ -753,7 +773,17 @@ def reports():
             'blockchain_valid': False
         }
         monthly_stats = {}
-        return render_template('reports.html', stats=stats, monthly_stats=monthly_stats)
+        currency = 'USD'  # fallback về USD khi lỗi
+
+    return render_template(
+        'reports.html',
+        stats=stats,
+        monthly_stats=monthly_stats,
+        currency=currency,
+        currency_symbol=currency_symbols.get(currency, '$'),
+        convert_currency=lambda x: convert_currency(x, currency)
+    )
+
 
 @app.route('/export/pdf')
 @login_required

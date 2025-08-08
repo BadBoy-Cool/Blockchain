@@ -13,11 +13,29 @@
             <h1 class="text-3xl font-bold">📊 Báo cáo & Thống kê</h1>
             <a href="/" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">🏠 Về trang chủ</a>
         </div>
-        
+
+        <!-- Chọn đơn vị tiền tệ -->
+        <div class="text-right mb-4">
+            <form method="GET" action="{{ url_for('reports') }}">
+                <label for="currency" class="mr-2 font-medium text-gray-700">💱 Đơn vị tiền tệ:</label>
+                <select name="currency" id="currency" onchange="this.form.submit()" class="px-3 py-2 rounded border border-gray-300">
+                    <option value="USD" {% if currency == 'USD' %}selected{% endif %}>USD ($)</option>
+                    <option value="VND" {% if currency == 'VND' %}selected{% endif %}>VND (₫)</option>
+                    <option value="EUR" {% if currency == 'EUR' %}selected{% endif %}>EUR (€)</option>
+                    <option value="JPY" {% if currency == 'JPY' %}selected{% endif %}>JPY (¥)</option>
+                </select>
+            </form>
+        </div>
+
+        {% set currency_symbols = {'USD': '$', 'VND': '₫', 'EUR': '€', 'JPY': '¥'} %}
+        {% set currency_symbol = currency_symbols.get(currency, '$') %}
+
         <!-- Statistics Cards -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <div class="bg-white p-6 rounded-lg shadow-md text-center">
-                <div class="text-3xl font-bold text-blue-600">${{ "%.2f"|format(stats.total_salary) }}</div>
+                <div class="text-3xl font-bold text-blue-600">
+                    {{ currency_symbol }}{{ "%.2f"|format(convert_currency(stats.total_salary)) }}
+                </div>
                 <div class="text-gray-600">Tổng lương đã chi</div>
                 <div class="text-xs text-gray-400 mt-1">Từ blockchain</div>
             </div>
@@ -84,7 +102,7 @@
                             <tr class="bg-gray-50">
                                 <th class="px-4 py-2 text-left">Tháng</th>
                                 <th class="px-4 py-2 text-right">Số giao dịch</th>
-                                <th class="px-4 py-2 text-right">Tổng lương ($)</th>
+                                <th class="px-4 py-2 text-right">Tổng lương ({{ currency_symbol }})</th>
                                 <th class="px-4 py-2 text-right">Số blocks</th>
                             </tr>
                         </thead>
@@ -93,7 +111,7 @@
                             <tr class="border-t">
                                 <td class="px-4 py-2 font-medium">{{ month }}</td>
                                 <td class="px-4 py-2 text-right">{{ data.transaction_count }}</td>
-                                <td class="px-4 py-2 text-right">${{ "%.2f"|format(data.total_salary) }}</td>
+                                <td class="px-4 py-2 text-right">{{ currency_symbol }}{{ "%.2f"|format(convert_currency(data.total_salary)) }}</td>
                                 <td class="px-4 py-2 text-right">{{ data.blocks }}</td>
                             </tr>
                             {% else %}
@@ -121,9 +139,8 @@
     </div>
     
     <script>
-        // Dữ liệu từ server
+        const currencySymbol = "{{ currency_symbol }}";
         const monthlyData = {{ monthly_stats|tojsonfilter|safe }};
-        console.log('Monthly data:', monthlyData);
         
         // Salary Chart
         const salaryCtx = document.getElementById('salaryChart').getContext('2d');
@@ -136,7 +153,7 @@
                 data: {
                     labels: salaryLabels,
                     datasets: [{
-                        label: 'Tổng lương (USD)',
+                        label: `Tổng lương (${currencySymbol})`,
                         data: salaryValues,
                         borderColor: 'rgb(59, 130, 246)',
                         backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -157,14 +174,13 @@
                             beginAtZero: true,
                             ticks: {
                                 callback: function(value) {
-                                    return '$' + value.toFixed(2);
+                                    return currencySymbol + value.toFixed(2);
                                 }
                             }
                         }
                     }
                 }
             });
-            document.getElementById('salaryChartStatus').innerHTML = '';
         } else {
             document.getElementById('salaryChartStatus').innerHTML = 'Chưa có dữ liệu để hiển thị biểu đồ.<br>Hãy xử lý bảng lương để tạo dữ liệu.';
             salaryCtx.canvas.style.display = 'none';
@@ -186,43 +202,15 @@
                         borderColor: 'rgba(34, 197, 94, 1)',
                         borderWidth: 1
                     }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Số giao dịch theo tháng'
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                stepSize: 1
-                            }
-                        }
-                    }
                 }
             });
-            document.getElementById('transactionChartStatus').innerHTML = '';
         } else {
             document.getElementById('transactionChartStatus').innerHTML = 'Chưa có dữ liệu để hiển thị biểu đồ.<br>Hãy xử lý bảng lương để tạo dữ liệu.';
             transactionCtx.canvas.style.display = 'none';
         }
         
-        function exportPDF() {
-            window.open('/export/pdf', '_blank');
-        }
-        
-        function exportExcel() {
-            window.open('/export/excel', '_blank');
-        }
-        
-        // Show loading message
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Page loaded, stats:', {{ stats|tojsonfilter|safe }});
-        });
+        function exportPDF() { window.open('/export/pdf?currency={{ currency }}', '_blank'); }
+        function exportExcel() { window.open('/export/excel?currency={{ currency }}', '_blank'); }
     </script>
 </body>
 </html>
