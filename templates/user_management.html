@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>👥 Quản lý người dùng</title>
+  <title> Quản lý người dùng</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -11,29 +11,29 @@
 
     <!-- Tiêu đề -->
     <div class="text-center mb-10">
-      <h1 class="text-4xl font-bold text-gray-800">👥 Quản lý người dùng</h1>
+      <h1 class="text-4xl font-bold text-gray-800"> Quản lý người dùng</h1>
       <p class="text-gray-600">Tạo tài khoản & quản lý trạng thái đăng nhập</p>
     </div>
 
     <!-- Form tạo tài khoản -->
     <div class="bg-white p-6 rounded-xl shadow-lg mb-10">
-      <h2 class="text-xl font-semibold text-gray-700 mb-4">📝 Tạo tài khoản mới</h2>
+      <h2 class="text-xl font-semibold text-gray-700 mb-4"> Tạo tài khoản mới</h2>
       <form id="create-user-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <input type="text" name="username" placeholder="👤 Tên đăng nhập" required class="p-3 border rounded-lg"/>
+        <input type="text" name="username" placeholder=" Tên đăng nhập" required class="p-3 border rounded-lg"/>
 
         <select name="role" class="p-3 border rounded-lg" required>
-          <option value="user">👥 User</option>
-          <option value="admin">🛡️ Admin</option>
+          <option value="user"> User</option>
+          <option value="admin">️ Admin</option>
         </select>
 
         <select name="employee_id" class="p-3 border rounded-lg" required>
-          <option value="">-- 🧑‍💼 Chọn nhân viên --</option>
+          <option value="">-- ‍ Chọn nhân viên --</option>
           {% for emp in employees %}
             <option value="{{ emp[0] }}">{{ emp[1] }}</option>
           {% endfor %}
         </select>
 
-        <textarea name="public_key" placeholder="🔐 Khóa công khai (PEM format)" rows="5" class="p-3 border rounded-lg md:col-span-2" required></textarea>
+        <textarea name="public_key" placeholder=" Khóa công khai (PEM format)" rows="5" class="p-3 border rounded-lg md:col-span-2" required></textarea>
 
         <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition md:col-span-2">
           ➕ Tạo tài khoản
@@ -43,7 +43,7 @@
 
     <!-- Danh sách tài khoản -->
     <div class="bg-white p-6 rounded-xl shadow-lg">
-      <h2 class="text-xl font-semibold text-gray-700 mb-4">📄 Danh sách tài khoản</h2>
+      <h2 class="text-xl font-semibold text-gray-700 mb-4"> Danh sách tài khoản</h2>
       <div class="overflow-x-auto">
         <table class="min-w-full table-auto border border-gray-200 rounded-lg overflow-hidden">
           <thead class="bg-gray-100">

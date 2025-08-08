@@ -29,7 +29,7 @@
 </head>
 <body class="bg-gray-100">
 <div class="container mx-auto p-6">
-    <h1 class="text-3xl font-bold mb-4 text-center text-gray-800">💰 Lịch Sử Giao Dịch</h1>
+    <h1 class="text-3xl font-bold mb-4 text-center text-gray-800"> Lịch Sử Giao Dịch</h1>
 
     {% if transactions %}
         {% for tx in transactions %}
@@ -43,8 +43,8 @@
             {% else %}
                 <div class="flex justify-between items-start mb-3">
                     <div>
-                        <h2 class="text-xl font-bold">👤 {{ tx.employee_name if tx.employee_name != 'N/A' else 'Nhân viên #' + tx.employee_id|string }}</h2>
-                        <p class="text-sm">📅 Tháng: {{ tx.month }} | 🏢 ID: {{ tx.employee_id }}</p>
+                        <h2 class="text-xl font-bold"> {{ tx.employee_name if tx.employee_name != 'N/A' else 'Nhân viên #' + tx.employee_id|string }}</h2>
+                        <p class="text-sm"> Tháng: {{ tx.month }} |  ID: {{ tx.employee_id }}</p>
                         {% if tx.processed_date != 'N/A' %}
                         <p class="text-xs">⏰ Xử lý: {{ tx.processed_date }}</p>
                         {% endif %}
@@ -57,23 +57,23 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-4">
                     <div class="bg-white bg-opacity-10 rounded-lg p-3">
-                        💵 Lương cơ bản: <strong>${{ "%.2f"|format(tx.base_salary) }}</strong>
+                         Lương cơ bản: <strong>${{ "%.2f"|format(tx.base_salary) }}</strong>
                     </div>
                     <div class="bg-white bg-opacity-10 rounded-lg p-3">
                         ⏰ Tăng ca: <strong>${{ "%.2f"|format(tx.overtime_salary) }}</strong>
                     </div>
                     <div class="bg-white bg-opacity-10 rounded-lg p-3">
-                        🎯 KPI: <strong>${{ "%.2f"|format(tx.kpi_bonus) }}</strong>
+                         KPI: <strong>${{ "%.2f"|format(tx.kpi_bonus) }}</strong>
                     </div>
                 </div>
 
                 <div class="text-sm space-y-1">
-                    <div>📦 Block: <span class="hash-display">{{ tx.block_index }}</span></div>
+                    <div> Block: <span class="hash-display">{{ tx.block_index }}</span></div>
                     {% if tx.block_hash != 'N/A' %}
-                    <div>🔗 Hash: <span class="hash-display">{{ tx.block_hash }}</span></div>
+                    <div> Hash: <span class="hash-display">{{ tx.block_hash }}</span></div>
                     {% endif %}
                     {% if tx.signature != 'N/A' %}
-                    <div>🔐 Chữ ký: <span class="hash-display">{{ tx.signature }}</span></div>
+                    <div> Chữ ký: <span class="hash-display">{{ tx.signature }}</span></div>
                     {% endif %}
                     {% if tx.timestamp and tx.timestamp != 0 %}
                     <div>⏱ Timestamp: <span class="hash-display">{{ tx.timestamp }}</span></div>
@@ -84,8 +84,8 @@
         {% endfor %}
     {% else %}
         <div class="text-center py-10">
-            <p class="text-xl text-gray-600">📭 Chưa có giao dịch nào</p>
-            <a href="/process_payroll" class="mt-4 inline-block bg-green-600 text-white px-6 py-3 rounded hover:bg-green-700">💼 Xử lý bảng lương</a>
+            <p class="text-xl text-gray-600"> Chưa có giao dịch nào</p>
+            <a href="/process_payroll" class="mt-4 inline-block bg-green-600 text-white px-6 py-3 rounded hover:bg-green-700"> Xử lý bảng lương</a>
         </div>
     {% endif %}
 </div>

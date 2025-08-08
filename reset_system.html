@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔧 Debug Đăng Nhập</title>
+    <title> Debug Đăng Nhập</title>
     <style>
         /* ... [CSS của bạn giữ nguyên không đổi] ... */
         body {
@@ -32,10 +32,10 @@
 </head>
 <body>
     <div class="container">
-        <h1>🔧 Công cụ Debug Đăng nhập Payroll System</h1>
+        <h1> Công cụ Debug Đăng nhập Payroll System</h1>
         
         <div class="step error">
-            <h3><span class="emoji">⚠️</span> Vấn đề phát hiện</h3>
+            <h3><span class="emoji">️</span> Vấn đề phát hiện</h3>
             <p>Có lỗi trong quá trình xác thực chữ ký. Có thể do:</p>
             <ul>
                 <li>Format message không khớp giữa client và server</li>
@@ -91,7 +91,7 @@
         </div>
 
         <div class="step warning">
-            <h3><span class="emoji">🔍</span> Nếu vẫn lỗi</h3>
+            <h3><span class="emoji"></span> Nếu vẫn lỗi</h3>
             <p>Kiểm tra các vấn đề sau trong code Flask:</p>
             <ul>
                 <li><strong>AuthSystem.verify_user():</strong> Đảm bảo format message đúng</li>
@@ -101,7 +101,7 @@
         </div>
 
         <div class="step">
-            <h3><span class="emoji">🚀</span> Quick Fix</h3>
+            <h3><span class="emoji"></span> Quick Fix</h3>
             <p>Thử reset hoàn toàn hệ thống xác thực:</p>
             <button class="btn" onclick="generateQuickFix()">Tạo Script Reset System</button>
             <div id="quickFixScript" class="debug-output" style="display: none;"></div>
@@ -127,13 +127,13 @@ def check_database():
             
             c.execute("PRAGMA table_info(users)")
             columns = c.fetchall()
-            print("📋 Cấu trúc bảng users:")
+            print(" Cấu trúc bảng users:")
             for col in columns:
                 print(f"  - {col[1]} ({col[2]})")
             
             c.execute("SELECT id, username, role, is_active, employee_id FROM users")
             users = c.fetchall()
-            print(f"\\n👥 Có {len(users)} users:")
+            print(f"\\n Có {len(users)} users:")
             for user in users:
                 print(f"  - ID: {user[0]}, Username: {user[1]}, Role: {user[2]}, Active: {user[3]}, Employee_ID: {user[4]}")
                 
@@ -206,8 +206,8 @@ def create_user_with_keys(username):
     conn.close()
     
     print(f"✅ Tạo user '{username}' thành công")
-    print(f"📄 File keys: {filename}")
-    print(f"🔑 Public key preview: {public_pem[:50]}...")
+    print(f" File keys: {filename}")
+    print(f" Public key preview: {public_pem[:50]}...")
 
 if __name__ == '__main__':
     create_user_with_keys('${username}')`;
@@ -261,8 +261,8 @@ def test_signature_flow(username):
         signature_b64 = base64.b64encode(signature).decode()
         
         print(f"✅ Tạo signature thành công")
-        print(f"📝 Message: {message}")
-        print(f"🔢 Timestamp: {timestamp}")
+        print(f" Message: {message}")
+        print(f" Timestamp: {timestamp}")
         print(f"✍️ Signature: {signature_b64}")
         
     except Exception as e:
@@ -390,7 +390,7 @@ def reset_auth_system():
     conn.close()
     
     print(f"✅ Tạo user admin thành công")
-    print(f"📄 Keys saved to: {filename}")
+    print(f" Keys saved to: {filename}")
     
     # 4. Test signature ngay
     import time

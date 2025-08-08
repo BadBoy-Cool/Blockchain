@@ -17,8 +17,8 @@ class CryptoUtils:
         try:
             with open(self.key_file, 'r') as f:
                 keys = json.load(f)
-                self.key = bytes.fromhex(keys['aes_key'])           # 🔧 Bổ sung
-                self.iv = bytes.fromhex(keys['iv'])                 # 🔧 Bổ sung
+                self.key = bytes.fromhex(keys['aes_key'])           #  Bổ sung
+                self.iv = bytes.fromhex(keys['iv'])                 #  Bổ sung
                 self.rsa_private_key = serialization.load_pem_private_key(
                     keys['rsa_private_key'].encode(),
                     password=None,
@@ -26,8 +26,8 @@ class CryptoUtils:
                 )
         except Exception:
             # Tạo mới nếu chưa tồn tại
-            self.key = os.urandom(32)  # 🔐 AES-256
-            self.iv = os.urandom(16)   # 📦 AES block size
+            self.key = os.urandom(32)  #  AES-256
+            self.iv = os.urandom(16)   #  AES block size
             self.rsa_private_key = rsa.generate_private_key(
                 public_exponent=65537,
                 key_size=2048
@@ -171,7 +171,7 @@ def verify_signature(public_key_pem, message, signature_b64):
         )
         return True
     except Exception as e:
-        print("⛔ Signature verify failed:", e)
+        print(" Signature verify failed:", e)
         return False
 
 

@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>🏠 Dashboard Mở Rộng</title>
+    <title> Dashboard Mở Rộng</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         .dashboard { max-width: 800px; margin: auto; }
@@ -13,7 +13,7 @@
 </head>
 <body>
     <div class="dashboard">
-        <h1>🏠 Dashboard Mở Rộng</h1>
+        <h1> Dashboard Mở Rộng</h1>
         <p>Thời gian hiện tại: {{ current_time }}</p>
         <h2>Chức năng mới</h2>
         <form action="/international_payroll" method="POST">
@@ -56,30 +56,30 @@
             {% for tx_list in transactions %}
                 {% for tx in tx_list %}
                 <div class="transaction">
-                    <p>👤 Nhân viên #{{ tx.employee_id }}</p>
+                    <p> Nhân viên #{{ tx.employee_id }}</p>
                     {% if tx.amount_usdc %}
-                    <p>💵 USDC: {{ tx.amount_usdc }}</p>
+                    <p> USDC: {{ tx.amount_usdc }}</p>
                     {% elif tx.amount_per_second %}
-                    <p>💸 Stream: {{ tx.amount_per_second }} USDC/giây, {{ tx.duration_seconds }} giây</p>
+                    <p> Stream: {{ tx.amount_per_second }} USDC/giây, {{ tx.duration_seconds }} giây</p>
                     {% elif tx.proposal_description %}
-                    <p>📜 DAO: {{ tx.proposal_description }} (Quỹ: ${{ "%.2f"|format(tx.fund_amount) }})</p>
+                    <p> DAO: {{ tx.proposal_description }} (Quỹ: ${{ "%.2f"|format(tx.fund_amount) }})</p>
                     {% elif tx.kpi_score %}
-                    <p>🎯 KPI: {{ "%.1f"|format(tx.kpi_score) }}</p>
+                    <p> KPI: {{ "%.1f"|format(tx.kpi_score) }}</p>
                     {% elif tx.contract_data %}
-                    <p>📜 Hợp đồng: {{ tx.contract_data }} (Bắt đầu: {{ tx.start_date }})</p>
+                    <p> Hợp đồng: {{ tx.contract_data }} (Bắt đầu: {{ tx.start_date }})</p>
                     {% else %}
-                    <p>💵 Lương: ${{ "%.2f"|format(tx.total_salary) }}</p>
+                    <p> Lương: ${{ "%.2f"|format(tx.total_salary) }}</p>
                     {% endif %}
                     {% if tx.tx_hash %}
-                    <p>🔗 Tx Hash: {{ tx.tx_hash }}</p>
+                    <p> Tx Hash: {{ tx.tx_hash }}</p>
                     {% endif %}
                 </div>
                 {% endfor %}
             {% endfor %}
         {% else %}
-            <p>📭 Chưa có giao dịch nào</p>
+            <p> Chưa có giao dịch nào</p>
         {% endif %}
-        <a href="/dashboard">🏠 Về Dashboard Cũ</a>
+        <a href="/dashboard"> Về Dashboard Cũ</a>
     </div>
     <script>
         document.getElementById('current_time').innerText = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });

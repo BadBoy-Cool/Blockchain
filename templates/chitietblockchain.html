@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>🔗 Chi Tiết Blockchain</title>
+    <title> Chi Tiết Blockchain</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
         .block-card {
@@ -42,10 +42,10 @@
     <!-- Cảnh báo nếu chuỗi bị chỉnh sửa -->
     {% if not chain_valid %}
         <div class="bg-red-500 text-white p-4 rounded-lg mb-6 font-semibold flex justify-between items-center">
-            ⚠️ Cảnh báo: Blockchain đã bị chỉnh sửa hoặc không hợp lệ!
+            ️ Cảnh báo: Blockchain đã bị chỉnh sửa hoặc không hợp lệ!
             <form action="{{ url_for('restore_blockchain') }}" method="POST">
                 <button class="bg-white text-red-600 px-4 py-2 rounded hover:bg-red-100 transition ml-4">
-                    🔄 Khôi phục từ bản sao lưu
+                     Khôi phục từ bản sao lưu
                 </button>
             </form>
         </div>
@@ -53,7 +53,7 @@
 
     <!-- Tiêu đề -->
     <div class="text-center mb-10">
-        <h1 class="text-4xl font-bold text-gray-800">🔗 Chi Tiết Blockchain</h1>
+        <h1 class="text-4xl font-bold text-gray-800"> Chi Tiết Blockchain</h1>
         <p class="text-gray-600">Xem chi tiết cấu trúc & dữ liệu trong chuỗi khối hệ thống lương</p>
     </div>
 
@@ -85,9 +85,9 @@
                 <div>
                     <h2 class="text-2xl font-bold">
                         {% if block.index == 0 %}
-                            🎯 Genesis Block
+                             Genesis Block
                         {% else %}
-                            📦 Block #{{ block.index }}
+                             Block #{{ block.index }}
                         {% endif %}
                     </h2>
                     <p class="text-sm opacity-80">{{ block.timestamp_formatted }}</p>
@@ -101,7 +101,7 @@
             <!-- Hash -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
-                    <div class="text-sm opacity-80 mb-1">🔗 Hash hiện tại:</div>
+                    <div class="text-sm opacity-80 mb-1"> Hash hiện tại:</div>
                     <div class="hash-display">{{ block.hash }}</div>
                 </div>
                 <div>
@@ -113,7 +113,7 @@
             <!-- Danh sách giao dịch -->
             {% if block.transactions %}
             <div class="mb-4">
-                <h3 class="text-lg font-semibold mb-2">💰 Giao Dịch Trong Block:</h3>
+                <h3 class="text-lg font-semibold mb-2"> Giao Dịch Trong Block:</h3>
                 {% for tx in block.transactions %}
                 <div class="transaction-item">
                     {% if tx.error %}
@@ -122,14 +122,14 @@
                         </div>
                     {% else %}
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 text-sm">
-                            <div><strong>👤 Nhân viên:</strong> {{ tx.employee_id }}</div>
-                            <div><strong>📅 Tháng:</strong> {{ tx.month }}</div>
-                            <div><strong>💵 Lương CB:</strong> ${{ "%.2f"|format(tx.base_salary) }}</div>
-                            <div><strong>💰 Tổng:</strong> ${{ "%.2f"|format(tx.total_salary) }}</div>
+                            <div><strong> Nhân viên:</strong> {{ tx.employee_id }}</div>
+                            <div><strong> Tháng:</strong> {{ tx.month }}</div>
+                            <div><strong> Lương CB:</strong> ${{ "%.2f"|format(tx.base_salary) }}</div>
+                            <div><strong> Tổng:</strong> ${{ "%.2f"|format(tx.total_salary) }}</div>
                         </div>
                         {% if tx.signature %}
                         <div class="mt-2 text-xs opacity-70">
-                            <strong>🔐 Chữ ký:</strong> {{ tx.signature[:60] }}...
+                            <strong> Chữ ký:</strong> {{ tx.signature[:60] }}...
                         </div>
                         {% endif %}
                     {% endif %}
@@ -143,7 +143,7 @@
                 <div class="space-x-4">
                     <span>{% if block.is_valid %}✅ Block hợp lệ{% else %}❌ Block lỗi{% endif %}</span>
                     {% if block.index > 0 %}
-                        <span>{% if block.chain_valid %}🔗 Chuỗi đúng{% else %}⚠️ Chuỗi sai{% endif %}</span>
+                        <span>{% if block.chain_valid %} Chuỗi đúng{% else %}️ Chuỗi sai{% endif %}</span>
                     {% endif %}
                 </div>
                 <div class="text-xs opacity-70">
@@ -157,7 +157,7 @@
     <!-- Nút trở về -->
     <div class="text-center mt-10">
         <a href="{{ url_for('index') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg shadow transition">
-            🏠 Quay về Dashboard
+             Quay về Dashboard
         </a>
     </div>
 

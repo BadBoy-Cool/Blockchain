@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-🧪 COMPREHENSIVE TEST SUITE FOR PAYROLL BLOCKCHAIN SYSTEM
+ COMPREHENSIVE TEST SUITE FOR PAYROLL BLOCKCHAIN SYSTEM
 Automated testing script để test toàn bộ hệ thống payroll blockchain
 """
 
@@ -416,7 +416,7 @@ class PayrollSystemTester:
     
     def run_all_tests(self):
         """Chạy tất cả các test"""
-        print("🚀 STARTING COMPREHENSIVE PAYROLL SYSTEM TESTS")
+        print(" STARTING COMPREHENSIVE PAYROLL SYSTEM TESTS")
         print("=" * 60)
         
         # Danh sách các test theo thứ tự
@@ -438,7 +438,7 @@ class PayrollSystemTester:
         total_tests = len(tests)
         
         for test_name, test_func in tests:
-            print(f"\n🧪 Running: {test_name}")
+            print(f"\n Running: {test_name}")
             try:
                 if test_func():
                     passed_tests += 1
@@ -447,23 +447,23 @@ class PayrollSystemTester:
         
         # Tổng kết
         print("\n" + "=" * 60)
-        print("📊 TEST SUMMARY")
+        print(" TEST SUMMARY")
         print("=" * 60)
         
         success_rate = (passed_tests / total_tests) * 100
         print(f"✅ Passed: {passed_tests}/{total_tests} ({success_rate:.1f}%)")
         
         if success_rate >= 90:
-            print("🎉 EXCELLENT! System is working great!")
+            print(" EXCELLENT! System is working great!")
         elif success_rate >= 70:
             print("✨ GOOD! Most features are working, minor issues to fix")
         elif success_rate >= 50:
-            print("⚠️  MODERATE! Several issues need attention")
+            print("️  MODERATE! Several issues need attention")
         else:
-            print("🚨 POOR! Major issues found, system needs significant fixes")
+            print(" POOR! Major issues found, system needs significant fixes")
         
         # Chi tiết kết quả
-        print("\n📋 DETAILED RESULTS:")
+        print("\n DETAILED RESULTS:")
         for test_name, result in self.test_results.items():
             status_icon = "✅" if result['status'] else "❌"
             print(f"{status_icon} {test_name}: {result['message']}")
@@ -472,7 +472,7 @@ class PayrollSystemTester:
 
 def main():
     """Hàm main để chạy test suite"""
-    print("🔧 Payroll Blockchain System - Automated Test Suite")
+    print(" Payroll Blockchain System - Automated Test Suite")
     print("Make sure your Flask server is running on http://localhost:5000")
     
     response = input("\nPress Enter to start testing (or 'q' to quit): ")
@@ -486,10 +486,10 @@ def main():
     with open(f'test_results_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json', 'w') as f:
         json.dump(tester.test_results, f, indent=2, ensure_ascii=False)
     
-    print(f"\n📁 Test results saved to test_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
+    print(f"\n Test results saved to test_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
     
     if not success:
-        print("\n🔧 TROUBLESHOOTING TIPS:")
+        print("\n TROUBLESHOOTING TIPS:")
         print("1. Make sure Flask server is running: python app.py")
         print("2. Check if all dependencies are installed: pip install -r requirements.txt")
         print("3. Verify database permissions and file locations")

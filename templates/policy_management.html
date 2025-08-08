@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📋 Quản Lý Chính Sách Trả Lương</title>
+    <title> Quản Lý Chính Sách Trả Lương</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
         body {
@@ -102,11 +102,11 @@
 </head>
 <body>
     <div class="container">
-        <h1>📋 Quản Lý Chính Sách Trả Lương & Chi Phí Sinh Hoạt</h1>
+        <h1> Quản Lý Chính Sách Trả Lương & Chi Phí Sinh Hoạt</h1>
 
         <!-- Cấu hình chính sách trả lương -->
         <div class="card">
-            <h2>📝 Cấu Hình Chính Sách Trả Lương</h2>
+            <h2> Cấu Hình Chính Sách Trả Lương</h2>
             <form method="POST" action="/update_policy">
                 <div class="form-group">
                     <label for="policy_type">Loại chính sách:</label>
@@ -125,7 +125,7 @@
 
         <!-- Quản lý chi phí sinh hoạt -->
         <div class="card">
-            <h2>📊 Quản Lý Chi Phí Sinh Hoạt</h2>
+            <h2> Quản Lý Chi Phí Sinh Hoạt</h2>
             <form method="POST" action="/update_cost_of_living">
                 <div class="form-group">
                     <label for="country">Quốc gia:</label>
@@ -145,7 +145,7 @@
 
         <!-- Danh sách chi phí sinh hoạt -->
         <div class="card">
-            <h2>📄 Danh Sách Chi Phí Sinh Hoạt</h2>
+            <h2> Danh Sách Chi Phí Sinh Hoạt</h2>
             <table>
                 <thead>
                     <tr>
@@ -178,7 +178,7 @@
         </div>
 
         <!-- Link quay về trang chủ -->
-        <a href="{{ url_for('index') }}" class="home-link">🏠 Về trang chủ</a>
+        <a href="{{ url_for('index') }}" class="home-link"> Về trang chủ</a>
     </div>
 </body>
 </html>
