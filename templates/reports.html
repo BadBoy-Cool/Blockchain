@@ -186,45 +186,51 @@
         }
         
         // Transaction Chart
-        const transactionCtx = document.getElementById('transactionChart').getContext('2d');
-        const transactionValues = Object.values(monthlyData).map(d => d.transaction_count || 0);
-        
-        if (salaryLabels.length > 0) {
-            new Chart(transactionCtx, {
-                type: 'bar',
-                data: {
-                    labels: salaryLabels,
-                    datasets: [{
-                        label: 'Số giao dịch',
-                        data: transactionValues,
-                        backgroundColor: 'rgba(34, 197, 94, 0.8)',
-                        borderColor: 'rgba(34, 197, 94, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Số giao dịch theo tháng'
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                stepSize: 1
-                            }
-                        }
-                    }
+// Lấy tất cả key có trong monthlyData và sắp xếp tăng dần
+const monthKeys = Object.keys(monthlyData).sort();
+
+// Chuyển key thành label "Tháng X/YYYY"
+const labels = monthKeys.map(key => {
+    const [y, m] = key.split('-');
+    return `Tháng ${parseInt(m, 10)}/${y}`;
+});
+
+// Lấy số giao dịch cho từng tháng
+const transactionValues = monthKeys.map(key => monthlyData[key].transaction_count || 0);
+
+const transactionCtx = document.getElementById('transactionChart').getContext('2d');
+
+new Chart(transactionCtx, {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'Số giao dịch',
+            data: transactionValues,
+            backgroundColor: 'rgba(34, 197, 94, 0.8)',
+            borderColor: 'rgba(34, 197, 94, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            title: {
+                display: true,
+                text: 'Số giao dịch theo tháng'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
                 }
-            });
-            document.getElementById('transactionChartStatus').innerHTML = '';
-        } else {
-            document.getElementById('transactionChartStatus').innerHTML = 'Chưa có dữ liệu để hiển thị biểu đồ.<br>Hãy xử lý bảng lương để tạo dữ liệu.';
-            transactionCtx.canvas.style.display = 'none';
+            }
         }
+    }
+});
+
         
         function exportPDF() {
             window.open('/export/pdf', '_blank');

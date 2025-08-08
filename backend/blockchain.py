@@ -278,51 +278,154 @@ class Blockchain:
             
         return blocks_info
 
-    
+    import json
+    from datetime import datetime
 
+    def get_transaction_volume_by_month(self, year=2025, only_year=True, debug=False):
+        """
+        Trả về dict theo từng tháng (YYYY-MM) cho `year` (mặc định tạo đủ 12 tháng).
+        only_year=True: chỉ tính các block trong `year` (nhưng vẫn thêm key nếu block ngoài year có xuất hiện).
+        debug=True: in thông tin chi tiết để debug.
+        """
+        def _to_seconds(ts):
+            """Chuẩn hóa timestamp về giây (hỗ trợ s, ms, ns, string số). Trả None nếu không parse được."""
+            try:
+                t = float(ts)
+            except Exception:
+                return None
+            # roughly detect units
+            if t > 1e15:    # nanoseconds
+                return t / 1e9
+            if t > 1e12:    # milliseconds
+                return t / 1e3
+            return t  # assume seconds
 
-    def get_transaction_volume_by_month(self):
-        """Cải thiện hàm thống kê theo tháng"""
-        monthly_stats = {}
-        
-        # Import crypto utils để decode
+        # Khởi tạo đủ 12 tháng cho year
+        monthly_stats = {f"{year}-{m:02d}": {'transaction_count': 0, 'total_salary': 0, 'blocks': 0}
+                        for m in range(1, 13)}
+
+        # cố import CryptoUtils nếu cần
         try:
             from backend.crypto_utils import CryptoUtils
             crypto = CryptoUtils()
-        except:
+        except Exception:
             crypto = None
-        
-        for block in self.chain:
-            block_date = datetime.fromtimestamp(block.timestamp)
-            month_key = block_date.strftime('%Y-%m')
-            
+            if debug:
+                print("CryptoUtils not available — skip special decode.")
+
+        for i, block in enumerate(self.chain):
+            sec = _to_seconds(block.timestamp)
+            if sec is None:
+                if debug:
+                    print(f"[BLOCK {i}] invalid timestamp: {block.timestamp!r}")
+                continue
+
+            dt = datetime.fromtimestamp(sec)
+            month_key = dt.strftime('%Y-%m')
+
+            # nếu chỉ lấy năm cụ thể và block không thuộc year, bỏ qua (nếu bạn muốn)
+            if only_year and not month_key.startswith(f"{year}-"):
+                if debug:
+                    print(f"[BLOCK {i}] skip (not in year {year}): {month_key}")
+                continue
+
+            # đảm bảo key tồn tại (nếu block thuộc năm khác, vẫn add được)
             if month_key not in monthly_stats:
-                monthly_stats[month_key] = {
-                    'transaction_count': 0,
-                    'total_salary': 0,
-                    'blocks': 0
-                }
-            
+                monthly_stats[month_key] = {'transaction_count': 0, 'total_salary': 0, 'blocks': 0}
+
             monthly_stats[month_key]['blocks'] += 1
-            
-            # Decode và tính transactions
-            for tx_data in block.transactions:
+            if debug:
+                print(f"[BLOCK {i}] raw_ts={block.timestamp!r} -> sec={sec} -> {month_key} (blocks={monthly_stats[month_key]['blocks']})")
+
+            # xử lý từng transaction
+            for j, tx_data in enumerate(block.transactions):
                 try:
                     tx_dict = self._decode_transaction(tx_data, crypto)
-                    
-                    if tx_dict and isinstance(tx_dict, dict):
-                        monthly_stats[month_key]['transaction_count'] += 1
-                        
-                        # Lấy total_salary
-                        salary = tx_dict.get('total_salary', 0)
-                        if isinstance(salary, (int, float)):
-                            monthly_stats[month_key]['total_salary'] += salary
-                        
                 except Exception as e:
-                    print(f"Error decoding transaction: {e}")
+                    if debug:
+                        print(f"  [BLOCK {i} TX {j}] decode error: {e}")
                     continue
-                    
+
+                if not isinstance(tx_dict, dict):
+                    if debug:
+                        print(f"  [BLOCK {i} TX {j}] decoded not dict: {tx_dict!r}")
+                    continue
+
+                monthly_stats[month_key]['transaction_count'] += 1
+
+                # lấy total_salary, hỗ trợ string numbers
+                salary = tx_dict.get('total_salary', 0)
+                parsed_salary = 0
+                if isinstance(salary, (int, float)):
+                    parsed_salary = float(salary)
+                else:
+                    # cố parse string (loại bỏ dấu phẩy, spaces)
+                    try:
+                        s = str(salary).replace(',', '').strip()
+                        parsed_salary = float(s)
+                    except Exception:
+                        if debug:
+                            print(f"  [BLOCK {i} TX {j}] cannot parse salary: {salary!r}")
+                        parsed_salary = 0
+
+                monthly_stats[month_key]['total_salary'] += parsed_salary
+                if debug:
+                    print(f"  [BLOCK {i} TX {j}] salary={parsed_salary} -> total for {month_key} = {monthly_stats[month_key]['total_salary']}")
+
+        if debug:
+            print("Debug - Monthly blockchain stats:", json.dumps(monthly_stats, indent=2, ensure_ascii=False))
+
         return monthly_stats
+
+    
+    # def get_transaction_volume_by_month(self,year = 2025):
+    #     """Cải thiện hàm thống kê theo tháng"""
+    #     monthly_stats = {}
+    #     from collections import defaultdict
+    #     for m in range(1, 13):
+    #         month_key = f"{year}-{m:02d}"
+    #         monthly_stats[month_key] = {
+    #             'transaction_count': 0,
+    #             'total_salary': 0,
+    #             'blocks': 0
+    #         }
+    #     # Import crypto utils để decode
+    #     try:
+    #         from backend.crypto_utils import CryptoUtils  
+    #         crypto = CryptoUtils()
+    #     except:
+    #         crypto = None
+        
+    #     for block in self.chain:
+    #         block_date = datetime.fromtimestamp(block.timestamp)
+    #         month_key = block_date.strftime('%Y-%m')
+            
+    #         if month_key not in monthly_stats:
+    #             monthly_stats[month_key] = {
+    #                 'transaction_count': 0,
+    #                 'total_salary': 0,
+    #                 'blocks': 0
+    #             }
+            
+    #         monthly_stats[month_key]['blocks'] += 1
+            
+    #         # Decode và tính transactions
+    #         for tx_data in block.transactions:
+    #             try:
+    #                 tx_dict = self._decode_transaction(tx_data, crypto)
+                    
+    #                 if tx_dict and isinstance(tx_dict, dict):
+    #                     monthly_stats[month_key]['transaction_count'] += 1
+                        
+    #                     # Lấy total_salary
+    #                     salary = tx_dict.get('total_salary', 0)
+    #                     if isinstance(salary, (int, float)):
+    #                         monthly_stats[month_key]['total_salary'] += salary
+                        
+    #             except Exception as e:
+    #                 print(f"Error decoding transaction: {e}")
+    #                 continue
+    #     return monthly_stats
 
 # Thêm vào class Blockchain trong blockchain.py
 
