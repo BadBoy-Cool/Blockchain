@@ -10,8 +10,8 @@
 <body class="bg-gray-100">
     <div class="container mx-auto p-6">
         <div class="flex justify-between items-center mb-6">
-            <h1 class="text-3xl font-bold"> Báo cáo & Thống kê</h1>
-            <a href="/" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"> Về trang chủ</a>
+            <h1 class="text-3xl font-bold">📊 Báo cáo & Thống kê</h1>
+            <a href="/" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">🏠 Về trang chủ</a>
         </div>
          <!-- Chọn đơn vị tiền tệ -->
         <div class="text-right mb-4">
@@ -54,7 +54,7 @@
 
         <!-- Blockchain Status -->
         <div class="bg-white p-6 rounded-lg shadow-md mb-8">
-            <h2 class="text-xl font-semibold mb-4"> Trạng thái Blockchain</h2>
+            <h2 class="text-xl font-semibold mb-4">🔗 Trạng thái Blockchain</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="text-center">
                     <div class="text-2xl font-bold text-indigo-600">{{ stats.get('blockchain_blocks', 0) }}</div>
@@ -76,13 +76,13 @@
         <!-- Charts -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <div class="bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-semibold mb-4"> Lương theo tháng</h2>
+                <h2 class="text-xl font-semibold mb-4">📈 Lương theo tháng</h2>
                 <canvas id="salaryChart" width="400" height="200"></canvas>
                 <div id="salaryChartStatus" class="text-center text-gray-500 mt-4"></div>
             </div>
             
             <div class="bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-semibold mb-4"> Số giao dịch theo tháng</h2>
+                <h2 class="text-xl font-semibold mb-4">📊 Số giao dịch theo tháng</h2>
                 <canvas id="transactionChart" width="400" height="200"></canvas>
                 <div id="transactionChartStatus" class="text-center text-gray-500 mt-4"></div>
             </div>
@@ -91,7 +91,7 @@
         <!-- Detailed Table -->
         <div class="bg-white rounded-lg shadow-md mb-8">
             <div class="p-6">
-                <h2 class="text-xl font-semibold mb-4"> Chi tiết theo tháng</h2>
+                <h2 class="text-xl font-semibold mb-4">📋 Chi tiết theo tháng</h2>
                 <div class="overflow-x-auto">
                     <table class="w-full table-auto">
                         <thead>
@@ -126,17 +126,18 @@
         <!-- Export buttons -->
         <div class="text-center">
             <button onclick="exportPDF()" class="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 mr-4 transition">
-                 Xuất báo cáo PDF
+                📄 Xuất báo cáo PDF
             </button>
             <button onclick="exportExcel()" class="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition">
-                 Xuất báo cáo CSV
+                📊 Xuất báo cáo CSV
             </button>
         </div>
     </div>
     
     <script>
         // Dữ liệu từ server
-        const currencySymbol = "{{ currency_symbol }}";
+                const currencySymbol = "{{ currency_symbol }}";
+
         const monthlyData = {{ monthly_stats|tojsonfilter|safe }};
         console.log('Monthly data:', monthlyData);
         
@@ -151,7 +152,7 @@
                 data: {
                     labels: salaryLabels,
                     datasets: [{
-                        label: `Tổng lương (${currencySymbol})`,
+                        label: 'Tổng lương (USD)',
                         data: salaryValues,
                         borderColor: 'rgb(59, 130, 246)',
                         backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -172,7 +173,7 @@
                             beginAtZero: true,
                             ticks: {
                                 callback: function(value) {
-                                    return currencySymbol + value.toFixed(2);
+                                    return '$' + value.toFixed(2);
                                 }
                             }
                         }
@@ -238,8 +239,6 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Page loaded, stats:', {{ stats|tojsonfilter|safe }});
         });
-        function exportPDF() { window.open('/export/pdf?currency={{ currency }}', '_blank'); }
-        function exportExcel() { window.open('/export/excel?currency={{ currency }}', '_blank'); }
     </script>
 </body>
 </html>

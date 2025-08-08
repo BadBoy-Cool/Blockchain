@@ -75,7 +75,7 @@ class AuthSystem:
                     'id': row[0],
                     'username': row[1],
                     'role': row[2],
-                    'employee_id': row[4]
+                    'employee_id': row[3]
                 }
 
         return None
@@ -96,7 +96,7 @@ class AuthSystem:
             )
             return True
         except Exception as e:
-            print(" Signature verification failed:", e)
+            print("⛔ Signature verification failed:", e)
             return False
 
       
@@ -395,12 +395,12 @@ def view_transactions():
         if role != 'admin':
             if 'employee_id' not in session:
                 return render_template('view_transactions.html', transactions=[{
-                    'error': f'Session không có employee_id cho người dùng {session.get("username", "Không rõ")}',
+                    'error': f'❌ Session không có employee_id cho người dùng {session.get("username", "Không rõ")}',
                     'raw_data': str(session)
                 }])
             if not employee_id:
                 return render_template('view_transactions.html', transactions=[{
-                    'error': f'Tài khoản nhân viên {session.get("username", "Không rõ")} không có employee_id hợp lệ.',
+                    'error': f'❌ Tài khoản nhân viên {session.get("username", "Không rõ")} không có employee_id hợp lệ.',
                     'raw_data': str(session)
                 }])
             transactions = [tx for tx in transactions if str(tx.get('employee_id')) == str(employee_id)]

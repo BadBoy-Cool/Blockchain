@@ -75,7 +75,7 @@ class AuthSystem:
                     'id': row[0],
                     'username': row[1],
                     'role': row[2],
-                    'employee_id': row[4]
+                    'employee_id': row[3]
                 }
 
         return None
@@ -96,7 +96,7 @@ class AuthSystem:
             )
             return True
         except Exception as e:
-            print(" Signature verification failed:", e)
+            print("⛔ Signature verification failed:", e)
             return False
 
       
@@ -395,12 +395,12 @@ def view_transactions():
         if role != 'admin':
             if 'employee_id' not in session:
                 return render_template('view_transactions.html', transactions=[{
-                    'error': f'Session không có employee_id cho người dùng {session.get("username", "Không rõ")}',
+                    'error': f'❌ Session không có employee_id cho người dùng {session.get("username", "Không rõ")}',
                     'raw_data': str(session)
                 }])
             if not employee_id:
                 return render_template('view_transactions.html', transactions=[{
-                    'error': f'Tài khoản nhân viên {session.get("username", "Không rõ")} không có employee_id hợp lệ.',
+                    'error': f'❌ Tài khoản nhân viên {session.get("username", "Không rõ")} không có employee_id hợp lệ.',
                     'raw_data': str(session)
                 }])
             transactions = [tx for tx in transactions if str(tx.get('employee_id')) == str(employee_id)]
@@ -670,37 +670,13 @@ def deactivate_user():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-
-
-from flask import request, render_template
-from backend.report_generator import ReportGenerator
-
-currency_rates = {
-    'USD': 1.0,
-    'VND': 24000.0,
-    'EUR': 0.85,
-    'JPY': 110.0,
-}
-
-currency_symbols = {
-    'USD': '$',
-    'VND': '₫',
-    'EUR': '€',
-    'JPY': '¥',
-}
-
-def convert_currency(value, currency='USD'):
-    """Chuyển đổi giá trị tiền tệ dựa trên tỷ giá"""
-    return value * currency_rates.get(currency, 1.0)
-
 # Thay thế phần route @app.route('/reports') trong app.py
 @app.route('/reports')
 @login_required
 def reports():
-    currency = request.args.get('currency', 'USD')
-
     try:
         # Sử dụng ReportGenerator để lấy thống kê
+        from backend.report_generator import ReportGenerator
         report_gen = ReportGenerator()
         stats = report_gen.get_salary_statistics()
         
