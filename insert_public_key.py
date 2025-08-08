@@ -5,7 +5,7 @@ import os
 def insert_public_key_to_db(username):
     filename = f"user_{username}_keys.json"
     if not os.path.exists(filename):
-        print(f"❌ Không tìm thấy file {filename}")
+        print(f"Không tìm thấy file {filename}")
         return
 
     with open(filename, 'r') as f:
@@ -13,7 +13,7 @@ def insert_public_key_to_db(username):
 
     public_key = keys.get('public_key')
     if not public_key:
-        print(f"❌ Không tìm thấy public_key trong {filename}")
+        print(f"Không tìm thấy public_key trong {filename}")
         return
 
     conn = sqlite3.connect("payroll.db")
@@ -26,11 +26,11 @@ def insert_public_key_to_db(username):
     if result:
         # Đã có user → UPDATE khóa
         c.execute("UPDATE users SET public_key = ? WHERE username = ?", (public_key, username))
-        print(f"✅ Cập nhật public_key cho user '{username}'")
+        print(f"Cập nhật public_key cho user '{username}'")
     else:
         # Chưa có user → INSERT mới (nếu muốn)
         c.execute("INSERT INTO users (username, public_key) VALUES (?, ?)", (username, public_key))
-        print(f"🆕 Thêm mới user '{username}' kèm public_key")
+        print(f"Thêm mới user '{username}' kèm public_key")
 
     conn.commit()
     conn.close()

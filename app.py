@@ -72,7 +72,7 @@ class AuthSystem:
                     'id': row[0],
                     'username': row[1],
                     'role': row[2],
-                    'employee_id': row[3]
+                    'employee_id': row[4]
                 }
 
         return None

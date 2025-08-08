@@ -33,7 +33,7 @@ def sign_message_with_file(user_key_file, username):
     )
     signature_b64 = base64.b64encode(signature).decode()
 
-    print(f"✅ Tạo chữ ký thành công!")
+    print(f"Tạo chữ ký thành công!")
     print(f"Username : {username}")
     print(f"Timestamp: {timestamp}")
     print(f"Message  : {message}")

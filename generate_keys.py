@@ -28,7 +28,7 @@ def generate_rsa_keys(username):
             "public_key": public_pem
         }, f)
 
-    print(f"✅ Đã tạo khóa cho user '{username}', lưu tại: {filename}")
+    print(f" Đã tạo khóa cho user '{username}', lưu tại: {filename}")
 
 # Tạo khóa cho nhiều user ở đây
 usernames = ["admin", "duyen", "bao", "son", "linh"]  # <--- thêm tên user mới vào đây
