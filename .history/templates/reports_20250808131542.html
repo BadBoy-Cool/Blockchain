@@ -10,13 +10,13 @@
 <body class="bg-gray-100">
     <div class="container mx-auto p-6">
         <div class="flex justify-between items-center mb-6">
-            <h1 class="text-3xl font-bold">📊 Báo cáo & Thống kê</h1>
-            <a href="/" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">🏠 Về trang chủ</a>
+            <h1 class="text-3xl font-bold"> Báo cáo & Thống kê</h1>
+            <a href="/" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"> Về trang chủ</a>
         </div>
          <!-- Chọn đơn vị tiền tệ -->
         <div class="text-right mb-4">
             <form method="GET" action="{{ url_for('reports') }}">
-                <label for="currency" class="mr-2 font-medium text-gray-700">💱 Đơn vị tiền tệ:</label>
+                <label for="currency" class="mr-2 font-medium text-gray-700"> Đơn vị tiền tệ:</label>
                 <select name="currency" id="currency" onchange="this.form.submit()" class="px-3 py-2 rounded border border-gray-300">
                     <option value="USD" {% if currency == 'USD' %}selected{% endif %}>USD ($)</option>
                     <option value="VND" {% if currency == 'VND' %}selected{% endif %}>VND (₫)</option>

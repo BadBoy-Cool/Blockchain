@@ -96,7 +96,7 @@ class AuthSystem:
             )
             return True
         except Exception as e:
-            print("⛔ Signature verification failed:", e)
+            print("ignature verification failed:", e)
             return False
 
       
