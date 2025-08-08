@@ -136,17 +136,10 @@
                         </div>
                     {% else %}
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 text-sm">
-<<<<<<< HEAD
                             <div><strong> Nhân viên:</strong> {{ tx.employee_id }}</div>
                             <div><strong> Tháng:</strong> {{ tx.month }}</div>
-                            <div><strong> Lương CB:</strong> ${{ "%.2f"|format(tx.base_salary) }}</div>
-                            <div><strong> Tổng:</strong> ${{ "%.2f"|format(tx.total_salary) }}</div>
-=======
-                            <div><strong>👤 Nhân viên:</strong> {{ tx.employee_id }}</div>
-                            <div><strong>📅 Tháng:</strong> {{ tx.month }}</div>
-                            <div><strong>💵 Lương CB:</strong> {{ currency_symbol }}{{ "%.2f"|format(convert_currency(tx.base_salary)) }}</div>
-                            <div><strong>💰 Tổng:</strong> {{ currency_symbol }}{{ "%.2f"|format(convert_currency(tx.total_salary)) }}</div>
->>>>>>> 8b252c125b352e9541b0b329905ee5d1ff5bf3c5
+                            <div><strong> Lương CB:</strong> {{ currency_symbol }}{{ "%.2f"|format(convert_currency(tx.total_salary)) }}</div>
+                            <div><strong> Tổng:</strong> {{ currency_symbol }}{{ "%.2f"|format(convert_currency(tx.total_salary)) }}</div>
                         </div>
 
                         {% if tx.signature %}
