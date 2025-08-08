@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo cáo & Thống kê</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold">📊 Báo cáo & Thống kê</h1>
+            <a href="/" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">🏠 Về trang chủ</a>
+        </div>
+         <!-- Chọn đơn vị tiền tệ -->
+        <div class="text-right mb-4">
+            <form method="GET" action="{{ url_for('reports') }}">
+                <label for="currency" class="mr-2 font-medium text-gray-700">💱 Đơn vị tiền tệ:</label>
+                <select name="currency" id="currency" onchange="this.form.submit()" class="px-3 py-2 rounded border border-gray-300">
+                    <option value="USD" {% if currency == 'USD' %}selected{% endif %}>USD ($)</option>
+                    <option value="VND" {% if currency == 'VND' %}selected{% endif %}>VND (₫)</option>
+                    <option value="EUR" {% if currency == 'EUR' %}selected{% endif %}>EUR (€)</option>
+                    <option value="JPY" {% if currency == 'JPY' %}selected{% endif %}>JPY (¥)</option>
+                </select>
+            </form>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                <div class="text-3xl font-bold text-blue-600">
+                    {{ currency_symbol }}{{ "%.2f"|format(convert_currency(stats.total_salary)) }}
+                </div>
+                <div class="text-gray-600">Tổng lương đã chi</div>
+                <div class="text-xs text-gray-400 mt-1">Từ blockchain</div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                <div class="text-3xl font-bold text-green-600">{{ stats.total_employees }}</div>
+                <div class="text-gray-600">Tổng nhân viên</div>
+                <div class="text-xs text-gray-400 mt-1">Đã đăng ký</div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                <div class="text-3xl font-bold text-purple-600">{{ stats.total_transactions }}</div>
+                <div class="text-gray-600">Tổng giao dịch</div>
+                <div class="text-xs text-gray-400 mt-1">Trên blockchain</div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                <div class="text-3xl font-bold text-orange-600">{{ "%.1f"|format(stats.avg_kpi) }}</div>
+                <div class="text-gray-600">KPI trung bình</div>
+                <div class="text-xs text-gray-400 mt-1">Điểm hiệu suất</div>
+            </div>
+        </div>
+
+        <!-- Blockchain Status -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+            <h2 class="text-xl font-semibold mb-4">🔗 Trạng thái Blockchain</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-indigo-600">{{ stats.get('blockchain_blocks', 0) }}</div>
+                    <div class="text-gray-600">Số blocks</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold {% if stats.get('blockchain_valid') %}text-green-600{% else %}text-red-600{% endif %}">
+                        {% if stats.get('blockchain_valid') %}✅ Hợp lệ{% else %}❌ Lỗi{% endif %}
+                    </div>
+                    <div class="text-gray-600">Tính toàn vẹn</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-yellow-600">{{ "%.1f"|format(stats.get('total_size_bytes', 0) / 1024) }} KB</div>
+                    <div class="text-gray-600">Kích thước</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Charts -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4">📈 Lương theo tháng</h2>
+                <canvas id="salaryChart" width="400" height="200"></canvas>
+                <div id="salaryChartStatus" class="text-center text-gray-500 mt-4"></div>
+            </div>
+            
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4">📊 Số giao dịch theo tháng</h2>
+                <canvas id="transactionChart" width="400" height="200"></canvas>
+                <div id="transactionChartStatus" class="text-center text-gray-500 mt-4"></div>
+            </div>
+        </div>
+
+        <!-- Detailed Table -->
+        <div class="bg-white rounded-lg shadow-md mb-8">
+            <div class="p-6">
+                <h2 class="text-xl font-semibold mb-4">📋 Chi tiết theo tháng</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full table-auto">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th class="px-4 py-2 text-left">Tháng</th>
+                                <th class="px-4 py-2 text-right">Số giao dịch</th>
+                                <th class="px-4 py-2 text-right">Tổng lương ({{ currency_symbol }})</th>
+                                <th class="px-4 py-2 text-right">Số blocks</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for month, data in monthly_stats.items() %}
+                            <tr class="border-t">
+                                <td class="px-4 py-2 font-medium">{{ month }}</td>
+                                <td class="px-4 py-2 text-right">{{ data.transaction_count }}</td>
+                                <td class="px-4 py-2 text-right">${{ "%.2f"|format(data.total_salary) }}</td>
+                                <td class="px-4 py-2 text-right">{{ data.blocks }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="px-4 py-8 text-center text-gray-500">
+                                    Chưa có dữ liệu giao dịch nào. Hãy xử lý bảng lương để tạo dữ liệu.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Export buttons -->
+        <div class="text-center">
+            <button onclick="exportPDF()" class="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 mr-4 transition">
+                📄 Xuất báo cáo PDF
+            </button>
+            <button onclick="exportExcel()" class="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition">
+                📊 Xuất báo cáo CSV
+            </button>
+        </div>
+    </div>
+    
+    <script>
+        // Dữ liệu từ server
+        const monthlyData = {{ monthly_stats|tojsonfilter|safe }};
+        console.log('Monthly data:', monthlyData);
+        
+        // Salary Chart
+        const salaryCtx = document.getElementById('salaryChart').getContext('2d');
+        const salaryLabels = Object.keys(monthlyData);
+        const salaryValues = Object.values(monthlyData).map(d => d.total_salary || 0);
+        
+        if (salaryLabels.length > 0) {
+            new Chart(salaryCtx, {
+                type: 'line',
+                data: {
+                    labels: salaryLabels,
+                    datasets: [{
+                        label: 'Tổng lương (USD)',
+                        data: salaryValues,
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Biểu đồ lương theo tháng'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(2);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            document.getElementById('salaryChartStatus').innerHTML = '';
+        } else {
+            document.getElementById('salaryChartStatus').innerHTML = 'Chưa có dữ liệu để hiển thị biểu đồ.<br>Hãy xử lý bảng lương để tạo dữ liệu.';
+            salaryCtx.canvas.style.display = 'none';
+        }
+        
+        // Transaction Chart
+        const transactionCtx = document.getElementById('transactionChart').getContext('2d');
+        const transactionValues = Object.values(monthlyData).map(d => d.transaction_count || 0);
+        
+        if (salaryLabels.length > 0) {
+            new Chart(transactionCtx, {
+                type: 'bar',
+                data: {
+                    labels: salaryLabels,
+                    datasets: [{
+                        label: 'Số giao dịch',
+                        data: transactionValues,
+                        backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                        borderColor: 'rgba(34, 197, 94, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Số giao dịch theo tháng'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+            document.getElementById('transactionChartStatus').innerHTML = '';
+        } else {
+            document.getElementById('transactionChartStatus').innerHTML = 'Chưa có dữ liệu để hiển thị biểu đồ.<br>Hãy xử lý bảng lương để tạo dữ liệu.';
+            transactionCtx.canvas.style.display = 'none';
+        }
+        
+        function exportPDF() {
+            window.open('/export/pdf', '_blank');
+        }
+        
+        function exportExcel() {
+            window.open('/export/excel', '_blank');
+        }
+        
+        // Show loading message
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded, stats:', {{ stats|tojsonfilter|safe }});
+        });
+    </script>
+</body>
+</html>

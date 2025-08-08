@@ -98,6 +98,7 @@ class AuthSystem:
             return {
                 'id': user_id,
                 'username': username,
+                'public_key': public_key,
                 'role': role,
                 'employee_id': employee_id 
             }

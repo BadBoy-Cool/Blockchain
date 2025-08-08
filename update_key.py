@@ -27,7 +27,7 @@ def update_public_key(username):
         c.execute("UPDATE users SET public_key = ? WHERE username = ?", (public_key, username))
         print(f"Đã cập nhật public_key cho user '{username}'")
     else:
-        print(f"User '{username}' chưa tồn tại trong DB, bỏ qua không cập nhật")
+        print(f"️ User '{username}' chưa tồn tại trong DB, bỏ qua không cập nhật")
 
     conn.commit()
     conn.close()

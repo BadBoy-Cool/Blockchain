@@ -19,7 +19,7 @@ def sign_message_with_file(user_key_file, username):
 
     # Tạo timestamp và thông điệp
     timestamp = int(time.time())
-    message = f"{timestamp}:{username}"  # 🔥 phải đúng format giống backend
+    message = f"{timestamp}:{username}"  #  phải đúng format giống backend
     payload = message.encode()
 
     # Ký thông điệp

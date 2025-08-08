@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Chi Tiết Blockchain</title>
+    <title>🔗 Chi Tiết Blockchain</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
         .block-card {
@@ -42,7 +42,7 @@
     <!-- Cảnh báo nếu chuỗi bị chỉnh sửa -->
     {% if not chain_valid %}
         <div class="bg-red-500 text-white p-4 rounded-lg mb-6 font-semibold flex justify-between items-center">
-            Cảnh báo: Blockchain đã bị chỉnh sửa hoặc không hợp lệ!
+            ⚠️ Cảnh báo: Blockchain đã bị chỉnh sửa hoặc không hợp lệ!
             <form action="{{ url_for('restore_blockchain') }}" method="POST">
                 <button class="bg-white text-red-600 px-4 py-2 rounded hover:bg-red-100 transition ml-4">
                      Khôi phục từ bản sao lưu
@@ -56,6 +56,18 @@
         <h1 class="text-4xl font-bold text-gray-800">Chi Tiết Blockchain</h1>
         <p class="text-gray-600">Xem chi tiết cấu trúc & dữ liệu trong chuỗi khối hệ thống lương</p>
     </div>
+    <!-- Chọn đơn vị tiền tệ -->
+    <div class="text-right mb-4">
+        <form method="GET" action="{{ url_for('chitietblockchain') }}">
+            <label for="currency" class="mr-2 font-medium text-gray-700">💱 Đơn vị tiền tệ:</label>
+            <select name="currency" id="currency" onchange="this.form.submit()" class="px-3 py-2 rounded border border-gray-300">
+                <option value="USD" {% if currency == 'USD' %}selected{% endif %}>USD ($)</option>
+                <option value="VND" {% if currency == 'VND' %}selected{% endif %}>VND (₫)</option>
+                <option value="EUR" {% if currency == 'EUR' %}selected{% endif %}>EUR (€)</option>
+                <option value="JPY" {% if currency == 'JPY' %}selected{% endif %}>JPY (¥)</option>
+            </select>
+        </form>
+    </div>
 
     <!-- Thống kê tổng quan -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
@@ -68,7 +80,9 @@
             <div class="text-gray-700 mt-2">Tổng Giao Dịch</div>
         </div>
         <div class="bg-purple-100 text-center p-6 rounded-xl shadow">
-            <div class="text-3xl font-bold text-purple-600">${{ "%.2f"|format(blockchain_stats.total_salary) }}</div>
+            <div class="text-3xl font-bold text-purple-600">
+                {{ currency_symbol }}{{ "%.2f"|format(convert_currency(blockchain_stats.total_salary)) }}
+            </div>            
             <div class="text-gray-700 mt-2">Tổng Lương Đã Chi</div>
         </div>
         <div class="bg-yellow-100 text-center p-6 rounded-xl shadow">
@@ -122,11 +136,12 @@
                         </div>
                     {% else %}
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 text-sm">
-                            <div><strong> Nhân viên:</strong> {{ tx.employee_id }}</div>
-                            <div><strong> Tháng:</strong> {{ tx.month }}</div>
-                            <div><strong> Lương CB:</strong> ${{ "%.2f"|format(tx.base_salary) }}</div>
-                            <div><strong> Tổng:</strong> ${{ "%.2f"|format(tx.total_salary) }}</div>
+                            <div><strong>👤 Nhân viên:</strong> {{ tx.employee_id }}</div>
+                            <div><strong>📅 Tháng:</strong> {{ tx.month }}</div>
+                            <div><strong>💵 Lương CB:</strong> ${{ "%.2f"|format(tx.base_salary) }}</div>
+                            <div><strong>💰 Tổng:</strong> ${{ "%.2f"|format(tx.total_salary) }}</div>
                         </div>
+
                         {% if tx.signature %}
                         <div class="mt-2 text-xs opacity-70">
                             <strong> Chữ ký:</strong> {{ tx.signature[:60] }}...
@@ -143,7 +158,7 @@
                 <div class="space-x-4">
                     <span>{% if block.is_valid %} Block hợp lệ{% else %} Block lỗi{% endif %}</span>
                     {% if block.index > 0 %}
-                        <span>{% if block.chain_valid %}🔗 Chuỗi đúng{% else %} Chuỗi sai{% endif %}</span>
+                        <span>{% if block.chain_valid %}🔗 Chuỗi đúng{% else %}⚠️ Chuỗi sai{% endif %}</span>
                     {% endif %}
                 </div>
                 <div class="text-xs opacity-70">

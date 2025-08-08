@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đăng Nhập</title>
+    <title> Đăng Nhập</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -29,7 +29,9 @@
             display: block;
             margin-bottom: 0.5rem;
         }
-        .form-group input, .form-group textarea {
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
             width: 100%;
             padding: 0.5rem;
             border: 1px solid #ddd;
@@ -53,10 +55,27 @@
             border-radius: 4px;
         }
     </style>
+    <script>
+        function toggleLoginMethod(method) {
+            const manualFields = document.getElementById('manual-fields');
+            const jsonField = document.getElementById('json-field');
+            if (method === 'manual') {
+                manualFields.style.display = 'block';
+                jsonField.style.display = 'none';
+            } else {
+                manualFields.style.display = 'none';
+                jsonField.style.display = 'block';
+            }
+        }
+
+        window.onload = function () {
+            toggleLoginMethod('manual'); // Mặc định là đăng nhập thủ công
+        };
+    </script>
 </head>
 <body>
     <div class="login-container">
-        <h2> Đăng Nhập </h2>
+        <h2> Đăng Nhập</h2>
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -64,23 +83,106 @@
                 {% endfor %}
             {% endif %}
         {% endwith %}
-        <form method="POST" action="/login">
+        <form method="POST" action="/login" enctype="multipart/form-data">
             <div class="form-group">
-                <label for="username">Tên đăng nhập</label>
-                <input type="text" id="username" name="username" required>
+                <label for="loginMethod">Chọn phương thức đăng nhập</label>
+                <select id="loginMethod" name="loginMethod" onchange="toggleLoginMethod(this.value)">
+                    <option value="manual">Nhập thủ công</option>
+                    <option value="json">Tải file JSON</option>
+                </select>
             </div>
-            <div class="form-group">
-                <label for="timestamp">Thời gian (timestamp)</label>
-                <input type="text" id="timestamp" name="timestamp" required placeholder="Dán timestamp từ script">
+
+            <!-- Đăng nhập thủ công -->
+            <div id="manual-fields">
+                <div class="form-group">
+                    <label for="username">Tên đăng nhập</label>
+                    <input type="text" id="username" name="username">
+                </div>
+                <div class="form-group">
+                    <label for="timestamp">Thời gian (timestamp)</label>
+                    <input type="text" id="timestamp" name="timestamp" placeholder="Dán timestamp từ script">
+                </div>
+                <div class="form-group">
+                    <label for="signature">Chữ ký (Signature)</label>
+                    <textarea id="signature" name="signature" rows="4" placeholder="Dán chữ ký hex từ script hoặc ví"></textarea>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="signature">Chữ ký (Signature)</label>
-                <textarea id="signature" name="signature" rows="4" required placeholder="Dán chữ ký hex từ script hoặc ví"></textarea>
+
+                        <!-- Đăng nhập bằng file JSON -->
+            <div id="json-field" style="display: none;">
+                <div class="form-group">
+                <label for="autoLoginFile">Tự động đăng nhập bằng file JSON</label>
+                <input type="file" id="autoLoginFile" name="autoLoginFile" accept=".json">
+                </div>
             </div>
+
             <div class="form-group">
                 <button type="submit">Đăng nhập</button>
             </div>
         </form>
-    </div>
+    <script>
+    document.getElementById('loginMethod').addEventListener('change', function() {
+        if (this.value === 'json') {
+            // Khi chọn JSON, tự động gọi script server
+            fetch('/run_script', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        alert('Chạy script lỗi: ' + data.error);
+                    }
+                })
+                .catch(e => {
+                    alert('Lỗi khi gọi server');
+                    console.error(e);
+                });
+        }
+    });
+
+
+document.getElementById('autoLoginFile').addEventListener('change', async function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // 🟢 Lấy username từ tên file, ví dụ: user_admin_keys.json → admin
+    const match = file.name.match(/^user_(.+)_keys\.json$/);
+    if (!match) {
+        alert("❌ Tên file không đúng định dạng 'user_<username>_keys.json'");
+        return;
+    }
+    const username = match[1];
+
+    const formData = new FormData();
+    formData.append('jsonFile', file);
+    formData.append('username', username);  // 🟢 Gửi kèm username
+
+    try {
+        const response = await fetch('/api/sign', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+
+        if (data.error) {
+            alert("❌ " + data.error);
+            return;
+        }
+
+        // Điền vào form
+        document.getElementById('username').value = data.username;
+        document.getElementById('timestamp').value = data.timestamp;
+        document.getElementById('signature').value = data.signature;
+
+        const method = document.getElementById('loginMethod');
+        if (method) method.value = 'manual';
+
+        document.querySelector('form').submit();
+    } catch (err) {
+        alert("❌ Đã có lỗi xảy ra.");
+        console.error(err);
+    }
+});
+</script>
+
+
 </body>
 </html>

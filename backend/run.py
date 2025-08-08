@@ -25,7 +25,7 @@ def check_dependencies():
         print("❌ Thiếu các package sau:")
         for package in missing_packages:
             print(f"   - {package}")
-        print("\n📦 Cài đặt bằng lệnh:")
+        print("\n Cài đặt bằng lệnh:")
         print(f"pip install {' '.join(missing_packages)}")
         return False
     
@@ -45,7 +45,7 @@ def create_directories():
             print(f"✅ Đã tạo thư mục: {directory}")
 
 def main():
-    print("🚀 Khởi động hệ thống quản lý lương blockchain...")
+    print(" Khởi động hệ thống quản lý lương blockchain...")
     
     # Kiểm tra dependencies
     if not check_dependencies():
@@ -58,17 +58,17 @@ def main():
     try:
         from app import app
         print("✅ Khởi tạo thành công!")
-        print("🌐 Truy cập: http://localhost:5000")
-        print("👤 Tài khoản mặc định:")
+        print(" Truy cập: http://localhost:5000")
+        print(" Tài khoản mặc định:")
         print("   - Username: admin")
         print("   - Password: admin123")
-        print("\n🔄 Đang khởi động server...")
+        print("\n Đang khởi động server...")
         
         app.run(debug=True, host='0.0.0.0', port=5000)
         
     except ImportError as e:
         print(f"❌ Lỗi import: {e}")
-        print("📁 Đảm bảo tất cả file đã được tạo đúng cấu trúc")
+        print(" Đảm bảo tất cả file đã được tạo đúng cấu trúc")
         sys.exit(1)
     except Exception as e:
         print(f"❌ Lỗi khởi động: {e}")

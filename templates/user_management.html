@@ -11,7 +11,7 @@
 
     <!-- Tiêu đề -->
     <div class="text-center mb-10">
-      <h1 class="text-4xl font-bold text-gray-800">  Quản lý người dùng</h1>
+      <h1 class="text-4xl font-bold text-gray-800"> Quản lý người dùng</h1>
       <p class="text-gray-600">Tạo tài khoản & quản lý trạng thái đăng nhập</p>
     </div>
 
@@ -23,11 +23,11 @@
 
         <select name="role" class="p-3 border rounded-lg" required>
           <option value="user"> User</option>
-          <option value="admin"> Admin</option>
+          <option value="admin">️ Admin</option>
         </select>
 
         <select name="employee_id" class="p-3 border rounded-lg" required>
-          <option value="">-- Chọn nhân viên --</option>
+          <option value="">-- ‍ Chọn nhân viên --</option>
           {% for emp in employees %}
             <option value="{{ emp[0] }}">{{ emp[1] }}</option>
           {% endfor %}
