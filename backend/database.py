@@ -5,8 +5,6 @@ def init_db():
     conn = sqlite3.connect('payroll.db')
     c = conn.cursor()
 
-    c.execute('DROP TABLE IF EXISTS users')
-
     # Tạo bảng employees
     c.execute('''
         CREATE TABLE IF NOT EXISTS employees (

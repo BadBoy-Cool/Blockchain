@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Debug Đăng Nhập</title>
+    <style>
+        /* ... [CSS của bạn giữ nguyên không đổi] ... */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container { max-width: 800px; margin: 0 auto; background: white; border-radius: 15px; padding: 30px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        .step { background: #f8f9ff; border-left: 5px solid #667eea; padding: 20px; margin: 20px 0; border-radius: 8px; }
+        .step h3 { margin-top: 0; color: #333; display: flex; align-items: center; gap: 10px; }
+        .code-block { background: #2d3748; color: #e2e8f0; padding: 15px; border-radius: 8px; font-family: 'Courier New', monospace; white-space: pre-wrap; margin: 10px 0; }
+        .error { background: #fee; border-left: 5px solid #e53e3e; color: #742a2a; }
+        .success { background: #f0fff4; border-left: 5px solid #38a169; color: #2f855a; }
+        .warning { background: #fffbeb; border-left: 5px solid #d69e2e; color: #744210; }
+        .btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px; margin: 10px 10px 10px 0; transition: transform 0.2s; }
+        .btn:hover { transform: translateY(-2px); }
+        .form-group { margin: 15px 0; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group textarea { width: 100%; padding: 10px; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 14px; }
+        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #667eea; }
+        .debug-output { background: #1a202c; color: #e2e8f0; padding: 15px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; max-height: 300px; overflow-y: auto; margin: 10px 0; }
+        .emoji { font-size: 1.2em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Công cụ Debug Đăng nhập Payroll System</h1>
+        
+        <div class="step error">
+            <h3><span class="emoji">⚠️</span> Vấn đề phát hiện</h3>
+            <p>Có lỗi trong quá trình xác thực chữ ký. Có thể do:</p>
+            <ul>
+                <li>Format message không khớp giữa client và server</li>
+                <li>Public key chưa được lưu đúng trong database</li>
+                <li>Timestamp không hợp lệ</li>
+                <li>Chữ ký không đúng định dạng</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <h3><span class="emoji">1️⃣</span> Kiểm tra Database</h3>
+            <p>Đầu tiên, hãy kiểm tra xem user của bạn đã có trong database chưa:</p>
+            <div class="code-block">python check_database.py</div>
+            
+            <button class="btn" onclick="generateDatabaseCheck()">Tạo Script Kiểm tra DB</button>
+            <div id="dbCheckScript" class="debug-output" style="display: none;"></div>
+        </div>
+
+        <div class="step">
+            <h3><span class="emoji">2️⃣</span> Tạo User và Key mới</h3>
+            <p>Nếu user chưa tồn tại, tạo user mới:</p>
+            
+            <div class="form-group">
+                <label>Username:</label>
+                <input type="text" id="newUsername" value="admin" placeholder="Nhập tên user">
+            </div>
+            
+            <button class="btn" onclick="generateUserCreation()">Tạo Script Tạo User</button>
+            <div id="userCreationScript" class="debug-output" style="display: none;"></div>
+        </div>
+
+        <div class="step">
+            <h3><span class="emoji">3️⃣</span> Test Signature</h3>
+            <p>Kiểm tra xem việc tạo chữ ký có hoạt động đúng không:</p>
+            
+            <div class="form-group">
+                <label>Username để test:</label>
+                <input type="text" id="testUsername" value="admin" placeholder="Nhập username">
+            </div>
+            
+            <button class="btn" onclick="generateSignatureTest()">Tạo Script Test Signature</button>
+            <div id="signatureTestScript" class="debug-output" style="display: none;"></div>
+        </div>
+
+        <div class="step success">
+            <h3><span class="emoji">4️⃣</span> Hướng dẫn thực hiện</h3>
+            <ol>
+                <li><strong>Chạy script kiểm tra database:</strong> Lưu script ở bước 1 thành file <code>check_database.py</code> và chạy</li>
+                <li><strong>Tạo user nếu cần:</strong> Lưu script ở bước 2 thành file <code>create_user.py</code> và chạy</li>
+                <li><strong>Test signature:</strong> Lưu script ở bước 3 thành file <code>test_signature.py</code> và chạy</li>
+                <li><strong>Copy kết quả:</strong> Dùng timestamp và signature từ script để đăng nhập</li>
+            </ol>
+        </div>
+
+        <div class="step warning">
+            <h3><span class="emoji">🔍</span> Nếu vẫn lỗi</h3>
+            <p>Kiểm tra các vấn đề sau trong code Flask:</p>
+            <ul>
+                <li><strong>AuthSystem.verify_user():</strong> Đảm bảo format message đúng</li>
+                <li><strong>verify_signature():</strong> Kiểm tra function này hoạt động</li>
+                <li><strong>Database schema:</strong> Đảm bảo bảng users có đúng cấu trúc</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <h3><span class="emoji">🚀</span> Quick Fix</h3>
+            <p>Thử reset hoàn toàn hệ thống xác thực:</p>
+            <button class="btn" onclick="generateQuickFix()">Tạo Script Reset System</button>
+            <div id="quickFixScript" class="debug-output" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        function generateDatabaseCheck() {
+            const script = `import sqlite3
+import json
+
+def check_database():
+    print("=== KIỂM TRA DATABASE ===")
+    
+    conn = sqlite3.connect('payroll.db')
+    c = conn.cursor()
+    
+    # Kiểm tra bảng users
+    try:
+        c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
+        if c.fetchone():
+            print("✅ Bảng 'users' tồn tại")
+            
+            c.execute("PRAGMA table_info(users)")
+            columns = c.fetchall()
+            print("📋 Cấu trúc bảng users:")
+            for col in columns:
+                print(f"  - {col[1]} ({col[2]})")
+            
+            c.execute("SELECT id, username, role, is_active, employee_id FROM users")
+            users = c.fetchall()
+            print(f"\\n👥 Có {len(users)} users:")
+            for user in users:
+                print(f"  - ID: {user[0]}, Username: {user[1]}, Role: {user[2]}, Active: {user[3]}, Employee_ID: {user[4]}")
+                
+        else:
+            print("❌ Bảng 'users' không tồn tại")
+            
+    except Exception as e:
+        print(f"❌ Lỗi kiểm tra: {e}")
+    
+    conn.close()
+
+if __name__ == '__main__':
+    check_database()`;
+            
+            document.getElementById('dbCheckScript').style.display = 'block';
+            document.getElementById('dbCheckScript').textContent = script;
+        }
+
+        function generateUserCreation() {
+            const username = document.getElementById('newUsername').value || 'admin';
+            const script = `import sqlite3
+import json
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+
+def create_user_with_keys(username):
+    print(f"=== TẠO USER: {username} ===")
+    
+    # 1. Tạo RSA key pair
+    private_key = rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048
+    )
+    public_key = private_key.public_key()
+    
+    private_pem = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption()
+    ).decode('utf-8')
+    
+    public_pem = public_key.public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo
+    ).decode('utf-8')
+    
+    # 2. Lưu keys ra file
+    filename = f"user_{username}_keys.json"
+    with open(filename, 'w') as f:
+        json.dump({
+            "private_key": private_pem,
+            "public_key": public_pem
+        }, f)
+    print(f"✅ Lưu keys tại: {filename}")
+    
+    # 3. Thêm user vào database
+    conn = sqlite3.connect('payroll.db')
+    c = conn.cursor()
+    
+    # Xóa user cũ nếu có
+    c.execute("DELETE FROM users WHERE username = ?", (username,))
+    
+    # Thêm user mới
+    c.execute("""
+        INSERT INTO users (username, public_key, role, is_active) 
+        VALUES (?, ?, ?, ?)
+    """, (username, public_pem, 'admin', 1))
+    
+    conn.commit()
+    conn.close()
+    
+    print(f"✅ Tạo user '{username}' thành công")
+    print(f"📄 File keys: {filename}")
+    print(f"🔑 Public key preview: {public_pem[:50]}...")
+
+if __name__ == '__main__':
+    create_user_with_keys('${username}')`;
+            
+            document.getElementById('userCreationScript').style.display = 'block';
+            document.getElementById('userCreationScript').textContent = script;
+        }
+
+        function generateSignatureTest() {
+            const username = document.getElementById('testUsername').value || 'admin';
+            const script = `import json
+import time
+import base64
+import sqlite3
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding
+
+def test_signature_flow(username):
+    print(f"=== TEST SIGNATURE CHO USER: {username} ===")
+    
+    # 1. Load private key
+    try:
+        filename = f"user_{username}_keys.json"
+        with open(filename, 'r') as f:
+            keys = json.load(f)
+            private_pem = keys['private_key']
+            public_pem = keys['public_key']
+        print("✅ Load keys thành công")
+    except Exception as e:
+        print(f"❌ Không thể load keys: {e}")
+        return
+    
+    # 2. Tạo signature
+    try:
+        private_key = serialization.load_pem_private_key(
+            private_pem.encode(),
+            password=None,
+        )
+        
+        timestamp = int(time.time())
+        message = f"{timestamp}:{username}"
+        
+        signature = private_key.sign(
+            message.encode(),
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+        signature_b64 = base64.b64encode(signature).decode()
+        
+        print(f"✅ Tạo signature thành công")
+        print(f"📝 Message: {message}")
+        print(f"🔢 Timestamp: {timestamp}")
+        print(f"✍️ Signature: {signature_b64}")
+        
+    except Exception as e:
+        print(f"❌ Lỗi tạo signature: {e}")
+        return
+    
+    # 3. Verify signature với public key
+    try:
+        public_key = serialization.load_pem_public_key(public_pem.encode())
+        
+        public_key.verify(
+            base64.b64decode(signature_b64),
+            message.encode(),
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+        print("✅ Verify signature thành công")
+    except Exception as e:
+        print(f"❌ Verify signature thất bại: {e}")
+        return
+    
+    # 4. Kiểm tra user trong database
+    try:
+        conn = sqlite3.connect('payroll.db')
+        c = conn.cursor()
+        c.execute("SELECT id, username, public_key, role, is_active FROM users WHERE username = ?", (username,))
+        user = c.fetchone()
+        conn.close()
+        
+        if user:
+            print(f"✅ User tồn tại trong DB: ID={user[0]}, Role={user[3]}, Active={user[4]}")
+            db_public_key = user[2]
+            if db_public_key == public_pem:
+                print("✅ Public key trong DB khớp với file")
+            else:
+                print("❌ Public key trong DB KHÔNG khớp với file")
+                print(f"File key: {public_pem[:50]}...")
+                print(f"DB key: {db_public_key[:50]}...")
+        else:
+            print("❌ User không tồn tại trong DB")
+    except Exception as e:
+        print(f"❌ Lỗi kiểm tra DB: {e}")
+    
+    print("\\n=== THÔNG TIN ĐĂNG NHẬP ===")
+    print(f"Username: {username}")
+    print(f"Timestamp: {timestamp}")
+    print(f"Signature: {signature_b64}")
+
+if __name__ == '__main__':
+    test_signature_flow('${username}')`;
+            
+            document.getElementById('signatureTestScript').style.display = 'block';
+            document.getElementById('signatureTestScript').textContent = script;
+        }
+
+        function generateQuickFix() {
+            const script = `import sqlite3
+import json
+import os
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+
+def reset_auth_system():
+    print("=== RESET HOÀN TOÀN HỆ THỐNG XÁC THỰC ===")
+    
+    # 1. Backup database cũ
+    if os.path.exists('payroll.db'):
+        import shutil
+        shutil.copy('payroll.db', 'payroll_backup.db')
+        print("✅ Backup database cũ")
+    
+    # 2. Tạo lại bảng users
+    conn = sqlite3.connect('payroll.db')
+    c = conn.cursor()
+    
+    c.execute("DROP TABLE IF EXISTS users")
+    c.execute('''CREATE TABLE users
+                 (id INTEGER PRIMARY KEY,
+                  username TEXT UNIQUE,
+                  public_key TEXT,
+                  role TEXT DEFAULT 'user',
+                  last_login TIMESTAMP,
+                  is_active BOOLEAN DEFAULT 1,
+                  employee_id INTEGER)''')
+    
+    print("✅ Tạo lại bảng users")
+    
+    # 3. Tạo user admin
+    username = 'admin'
+    
+    # Tạo keys
+    private_key = rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048
+    )
+    public_key = private_key.public_key()
+    
+    private_pem = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption()
+    ).decode('utf-8')
+    
+    public_pem = public_key.public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo
+    ).decode('utf-8')
+    
+    # Lưu keys
+    filename = f"user_{username}_keys.json"
+    with open(filename, 'w') as f:
+        json.dump({
+            "private_key": private_pem,
+            "public_key": public_pem
+        }, f)
+    
+    # Thêm vào DB
+    c.execute("INSERT INTO users (username, public_key, role, is_active) VALUES (?, ?, ?, ?)",
+              (username, public_pem, 'admin', 1))
+    
+    conn.commit()
+    conn.close()
+    
+    print(f"✅ Tạo user admin thành công")
+    print(f"📄 Keys saved to: {filename}")
+    
+    # 4. Test signature ngay
+    import time
+    import base64
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.asymmetric import padding
+    
+    private_key_obj = serialization.load_pem_private_key(
+        private_pem.encode(),
+        password=None,
+    )
+    
+    timestamp = int(time.time())
+    message = f"{timestamp}:{username}"
+    
+    signature = private_key_obj.sign(
+        message.encode(),
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256()
+    )
+    signature_b64 = base64.b64encode(signature).decode()
+    
+    print("\\n=== SỬ DỤNG ĐỂ ĐĂNG NHẬP ===")
+    print(f"Username: {username}")
+    print(f"Timestamp: {timestamp}")
+    print(f"Signature: {signature_b64}")
+    
+    print("\\n✅ RESET HOÀN TẤT!")
+
+if __name__ == '__main__':
+    reset_auth_system()`;
+            
+            document.getElementById('quickFixScript').style.display = 'block';
+            document.getElementById('quickFixScript').textContent = script;
+        }
+    </script>
+</body>
+</html>
