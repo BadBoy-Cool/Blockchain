@@ -1,0 +1,91 @@
+{
+  "test_timestamp": "2025-08-10T21:25:35.130236",
+  "aes_encryption": [
+    {
+      "type": "Small (0.1KB)",
+      "size_bytes": 83,
+      "avg_encrypt_time": 3.141598310321569e-05,
+      "avg_decrypt_time": 1.876398455351591e-05,
+      "std_encrypt_time": 7.710711475210705e-05,
+      "std_decrypt_time": 5.7275234061660864e-06
+    },
+    {
+      "type": "Medium (1KB)",
+      "size_bytes": 810,
+      "avg_encrypt_time": 2.0595998503267765e-05,
+      "avg_decrypt_time": 1.7003989778459073e-05,
+      "std_encrypt_time": 9.677504116663775e-06,
+      "std_decrypt_time": 2.7951852345453418e-06
+    },
+    {
+      "type": "Large (5KB)",
+      "size_bytes": 7550,
+      "avg_encrypt_time": 3.602801356464625e-05,
+      "avg_decrypt_time": 3.9772000163793564e-05,
+      "std_encrypt_time": 2.5384266630158483e-05,
+      "std_decrypt_time": 7.087184576544137e-05
+    }
+  ],
+  "rsa_signing": [
+    {
+      "type": "Small message",
+      "message_length": 7,
+      "avg_sign_time": 0.0005950633281220992,
+      "std_sign_time": 0.00033261857550828764
+    },
+    {
+      "type": "Medium message",
+      "message_length": 24,
+      "avg_sign_time": 0.0006752300153796872,
+      "std_sign_time": 0.0003391999393722229
+    },
+    {
+      "type": "Large message",
+      "message_length": 210,
+      "avg_sign_time": 0.0005547066762422522,
+      "std_sign_time": 0.00023318463693522393
+    }
+  ],
+  "blockchain_operations": [
+    {
+      "difficulty": 1,
+      "avg_create_time": 0.005056700063869357,
+      "avg_validate_time": 0.00013989992439746856,
+      "std_create_time": 0.0013682123918838157,
+      "std_validate_time": 1.747813272856297e-05,
+      "total_blocks_created": 5
+    },
+    {
+      "difficulty": 2,
+      "avg_create_time": 0.005521679995581508,
+      "avg_validate_time": 0.0001233600080013275,
+      "std_create_time": 0.0027271612655811192,
+      "std_validate_time": 1.8750973943565454e-05,
+      "total_blocks_created": 5
+    },
+    {
+      "difficulty": 3,
+      "avg_create_time": 0.023891880037263037,
+      "avg_validate_time": 0.00016947994008660318,
+      "std_create_time": 0.015414951252087718,
+      "std_validate_time": 5.056814137895702e-05,
+      "total_blocks_created": 5
+    },
+    {
+      "difficulty": 4,
+      "avg_create_time": 0.3890816400293261,
+      "avg_validate_time": 0.00015769996680319308,
+      "std_create_time": 0.4678747085697022,
+      "std_validate_time": 2.1017125712182945e-05,
+      "total_blocks_created": 5
+    }
+  ],
+  "analysis": {
+    "aes_vs_rsa_speed_ratio": 32.784524395481725,
+    "blockchain_difficulty_impact": 4.7247967519317555,
+    "recommendations": [
+      "AES-256 nhanh hơn RSA 32.8 lần trong xử lý giao dịch, nên sử dụng AES để mã hóa dữ liệu lương và RSA để xác thực.",
+      "Tăng độ khó từ 1 lên 3 làm thời gian tạo block tăng 4.7 lần, cần cân bằng giữa bảo mật và hiệu suất."
+    ]
+  }
+}

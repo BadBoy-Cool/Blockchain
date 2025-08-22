@@ -86,15 +86,5 @@
     "previous_hash": "07ef8061b9e85d10a24a1755110fa1e60194f80e90bf6898bc1da38b695cd71f",
     "hash": "0d7c4f8a02cf6adfa4792a07714d098d38e31936576de7ae185b56e8eb2429b4",
     "nonce": 18
-  },
-  {
-    "index": 9,
-    "timestamp": 1754632762.104016,
-    "transactions": [
-      "bU7GiB20rQpLIfum2ZmJSo5NDHRV3wFZAxBSPAujU3gL/NpDIkzyrxqM9rlRklOvUsZLoY4oFRHSCK3vYEAm7843+SXP87+hjHmm6L24gVv6ojQpEQpcNCL4FafUt6d/mdrIq6fmxSUV9+Z0Q7GlKVksK2sYDFs9x7A385aTAkZj4v4hDQcftRDta7vinBcTQfTcBOW/7taCMi0KxjzDOdXPzBamMkMXKaDyo2v1fwNp2+oxLiqpuJTxQnxs1X2A1dK8HagBCdB2ztTPaPmO6R1J/dk5iUzs/TPAjNhuPWMfjGZ2Pni+4loAc9xyBl6RGy4ATijtt+mxL3tzAqMERb5tjXTFAh+27Ah76pCXPnonCvEX+37/N/IpFrbPDXiP/XkHJZW8Gc+3Qc0CDQP8XtBkFGsl9JrxEHhcEB2T9MKzB7csWy1RP1k2DpBQ7V2J+tkod0KOAdoNLzX5PDPBa8mXZzQhpShQkJ23vVS6JfQrLBVr1j4jS/K0IqmEDg/+YvkqK5WUH17k9uyX6FGMMjY/SzxEiKWzxi2HaBWv/rWl8mxEI03//Z2KMdiX6kCQ6tIGHAIQLWx99+tHZEtLkkvQcbUli/vgrhJVrWo0VC9Mwjp37llhckmo4+vpkXCtTUelM2DEGBKnhXcGTwHu5SpTKGXdCsHV6ONeV+0X2PM="
-    ],
-    "previous_hash": "0d7c4f8a02cf6adfa4792a07714d098d38e31936576de7ae185b56e8eb2429b4",
-    "hash": "058ea4a3a259f1cd01d53b6ce022de61bf6a08460cb892b2cfc055b3209ed2ac",
-    "nonce": 3
   }
 ]
